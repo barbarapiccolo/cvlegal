@@ -1,6 +1,7 @@
 import glob
 import json
 import os
+import time
 import urllib.parse
 from google import genai
 from google.genai import types
@@ -45,38 +46,51 @@ for q in queries:
       json={"q": q, "gl": "es", "hl": "es", "tbs": "qdr:w", "num": 4},
   )
   if res.status_code == 200:
-    ofertas_crudas.extend(res.json().get("organic", []))
+    for item in res.json().get("organic", []):
+      ofertas_crudas.append({
+          "titulo": item.get("title", ""),
+          "link": item.get("link", ""),
+          "snippet": item.get("snippet", ""),
+      })
 
-# 3. Filtrar con Gemini usando tu CV real de cvlegal
-for item in ofertas_crudas:
-  titulo = item.get("title", "")
-  link = item.get("link", "")
-  snippet = item.get("snippet", "")
+print(
+    f"Se encontraron {len(ofertas_crudas)} ofertas en bruto. Analizando todas"
+    " en 1 sola llamada..."
+)
 
-  prompt = (
-      "Analiza esta vacante o página de empresa:\n"
-      f"Título: {titulo}\nResumen: {snippet}\nLink: {link}\n\n"
-      f"Mi CV actual en el repositorio:\n{cv_base[:6000]}\n\n"
-      "REGLAS ESTRICTAS DE FILTRADO:\n"
-      '1. Si la oferta está en inglés o exige "Inglés fluido / C1 / High English"'
-      " excluyente, DESCÁRTALA (aceptada: false).\n"
-      "2. Si exige colegiación obligatoria en España para litigar en juzgados"
-      " (procesal puro), DESCÁRTALA (aceptada: false).\n"
-      "3. Si es en español y busca LegalOps, Compliance, RGPD, IA, Contratos o"
-      " Innovación Legal, ACÉPTALA (aceptada: true).\n\n"
-      "Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta:\n"
-      "{\n"
-      '  "aceptada": true,\n'
-      '  "empresa_o_rol": "Nombre del puesto y empresa",\n'
-      '  "asunto_correo": "Asunto atractivo para postular o contactar",\n'
-      '  "mensaje_postulacion": "Carta/mensaje corto, directo y persuasivo en'
-      " español adaptado a esta oferta e incluyendo el link a mi portafolio"
-      ' https://github.com/barbarapiccolo/cvlegal",\n'
-      '  "puntos_clave_cv": "3 puntos de mi CV reescritos con las palabras'
-      ' clave exactas de esta oferta"\n'
-      "}"
-  )
+# 3. Filtrar TODAS las ofertas en UNA SOLA llamada a Gemini (evita límite de 5 req/min)
+prompt = (
+    "Analiza la siguiente lista de vacantes o páginas de empresas:\n"
+    f"{json.dumps(ofertas_crudas, ensure_ascii=False, indent=2)}\n\n"
+    f"Mi CV actual en el repositorio:\n{cv_base[:6000]}\n\n"
+    "REGLAS DE FILTRADO:\n"
+    '1. Si la oferta está en inglés o exige "Inglés fluido / C1 / High English"'
+    " excluyente, DESCÁRTALA.\n"
+    "2. Si exige colegiación obligatoria en España para litigar en juzgados"
+    " (procesal puro), DESCÁRTALA.\n"
+    "3. Selecciona las ofertas en español que busquen LegalOps, Compliance,"
+    " RGPD, IA, Contratos, Consultoría o Innovación Legal.\n\n"
+    "Devuelve ÚNICAMENTE un objeto JSON válido con una lista llamada"
+    ' "ofertas_seleccionadas" con esta estructura exacta:\n'
+    "{\n"
+    '  "ofertas_seleccionadas": [\n'
+    "    {\n"
+    '      "empresa_o_rol": "Nombre del puesto y empresa",\n'
+    '      "link": "URL original de la oferta",\n'
+    '      "asunto_correo": "Asunto atractivo para postular o contactar",\n'
+    '      "mensaje_postulacion": "Carta/mensaje corto, directo y persuasivo en'
+    " español adaptado a esta oferta e incluyendo mi portafolio"
+    ' https://github.com/barbarapiccolo/cvlegal",\n'
+    '      "puntos_clave_cv": "3 puntos de mi CV reescritos con las palabras'
+    ' clave de esta oferta"\n'
+    "    }\n"
+    "  ]\n"
+    "}"
+)
 
+# Sistema de reintento automático por si el servidor de Google da 503 (alta demanda)
+resultado = {"ofertas_seleccionadas": []}
+for intento in range(3):
   try:
     respuesta = client.models.generate_content(
         model="gemini-3.8-flash",
@@ -86,37 +100,50 @@ for item in ofertas_crudas:
         ),
     )
     resultado = json.loads(respuesta.text)
+    print("¡Análisis completado con éxito por Gemini!")
+    break
   except Exception as e:
-    print(f"Error procesando oferta: {e}")
-    continue
-
-  # 4. Si pasa el filtro, crea la tarjeta (Issue) y dispara notificación a tu móvil
-  if resultado.get("aceptada"):
-    asunto_encoded = urllib.parse.quote(resultado["asunto_correo"])
-    cuerpo_encoded = urllib.parse.quote(resultado["mensaje_postulacion"])
-    link_mailto = f"mailto:?subject={asunto_encoded}&body={cuerpo_encoded}"
-
-    cuerpo_issue = (
-        f"🔔 Hola @{USUARIO}, encontré una oferta en español ideal para tu"
-        " perfil:\n\n### 🎯 Oferta Detectada\n**Rol / Empresa:**"
-        f" {resultado['empresa_o_rol']}\n🔗 **[Ver Oferta Original]({link})**\n\n---"
-        "\n\n### ✉️ Mensaje Listo para Enviar o Pegar\n> **Asunto sugerido:**"
-        f" {resultado['asunto_correo']}\n\n```text\n"
-        f"{resultado['mensaje_postulacion']}\n```\n\n🚀 **[Toca aquí desde el"
-        " móvil para abrir tu Correo con el texto ya"
-        f" pegado]({link_mailto})**\n\n---\n\n### 🛠️ Ajuste sugerido para tu CV"
-        f" en esta oferta:\n{resultado['puntos_clave_cv']}"
+    print(
+        f"Intento {intento + 1} - Servidor ocupado ({e}). Reintentando en 20"
+        " segundos..."
     )
+    time.sleep(20)
 
-    requests.post(
-        f"https://api.github.com/repos/{REPO}/issues",
-        headers={
-            "Authorization": f"Bearer {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github+json",
-        },
-        json={
-            "title": f"💼 Oferta: {resultado['empresa_o_rol']}",
-            "body": cuerpo_issue,
-            "assignees": [USUARIO],
-        },
-    )
+# 4. Crear una tarjeta (Issue) en GitHub por cada oferta aprobada
+seleccionadas = resultado.get("ofertas_seleccionadas", [])
+print(f"Creando {len(seleccionadas)} tarjetas en GitHub Issues...")
+
+for of in seleccionadas:
+  asunto_encoded = urllib.parse.quote(of.get("asunto_correo", ""))
+  cuerpo_encoded = urllib.parse.quote(of.get("mensaje_postulacion", ""))
+  link_mailto = f"mailto:?subject={asunto_encoded}&body={cuerpo_encoded}"
+
+  cuerpo_issue = (
+      f"🔔 Hola @{USUARIO}, encontré una oferta en español ideal para tu"
+      " perfil:\n\n### 🎯 Oferta Detectada\n**Rol / Empresa:**"
+      f" {of.get('empresa_o_rol')}\n🔗 **[Ver Oferta"
+      f" Original]({of.get('link')})**\n\n---\n\n### ✉️ Mensaje Listo para"
+      " Enviar o Pegar\n> **Asunto sugerido:**"
+      f" {of.get('asunto_correo')}\n\n```text\n"
+      f"{of.get('mensaje_postulacion')}\n```\n\n🚀 **[Toca aquí desde el"
+      " móvil para abrir tu Correo con el texto ya"
+      f" pegado]({link_mailto})**\n\n---\n\n### 🛠️ Ajuste sugerido para tu CV"
+      f" en esta oferta:\n{of.get('puntos_clave_cv')}"
+  )
+
+  res_issue = requests.post(
+      f"https://api.github.com/repos/{REPO}/issues",
+      headers={
+          "Authorization": f"Bearer {GITHUB_TOKEN}",
+          "Accept": "application/vnd.github+json",
+      },
+      json={
+          "title": f"💼 Oferta: {of.get('empresa_o_rol')}",
+          "body": cuerpo_issue,
+          "assignees": [USUARIO],
+      },
+  )
+  print(
+      f"Issue creado para {of.get('empresa_o_rol')}: Status"
+      f" {res_issue.status_code}"
+  )
