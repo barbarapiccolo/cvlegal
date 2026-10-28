@@ -71,7 +71,7 @@ for item in ofertas_crudas:
       '  "asunto_correo": "Asunto atractivo para postular o contactar",\n'
       '  "mensaje_postulacion": "Carta/mensaje corto, directo y persuasivo en'
       " español adaptado a esta oferta e incluyendo el link a mi portafolio"
-      ' https://github.direc/barbarapiccolo/cvlegal",\n'
+      ' https://github.com/barbarapiccolo/cvlegal",\n'
       '  "puntos_clave_cv": "3 puntos de mi CV reescritos con las palabras'
       ' clave exactas de esta oferta"\n'
       "}"
