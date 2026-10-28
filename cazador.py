@@ -40,7 +40,6 @@ except Exception:
 
 # 2. Búsqueda X-Ray: Remoto (Global/LatAm/España) + Presencial/Híbrido en España (aprovechando Ciudadanía UE)
 queries = [
-    # 1. ATS de empresas tech en España y Remoto (Lever, Greenhouse, Workable, Teamtailor, Factorial, Welcome to the Jungle)
     (
         '(site:jobs.lever.co OR site:boards.greenhouse.io OR'
         ' site:apply.workable.com OR site:teamtailor.com OR'
@@ -49,7 +48,6 @@ queries = [
         ' ("España" OR "Madrid" OR "Barcelona" OR "Remoto" OR "Teletrabajo" OR'
         ' "LATAM")'
     ),
-    # 2. Portales de empleo españoles y remotos (InfoJobs, Indeed España, Get on Board, Tecnoempleo)
     (
         '(site:infojobs.net OR site:es.indeed.com/viewjob OR'
         ' site:getonbrd.com/empleos OR site:tecnoempleo.com) ("Legal'
@@ -57,7 +55,6 @@ queries = [
         ' OR "Inteligencia Artificial") ("Madrid" OR "Barcelona" OR "Valencia"'
         ' OR "Teletrabajo" OR "Remoto")'
     ),
-    # 3. Vacantes directas de Innovación Legal, IA y Privacidad en España o Remoto
     (
         'intitle:"oferta" OR intitle:"vacante" OR intitle:"empleo" ("Legal'
         ' Operations" OR "LegalTech" OR "RGPD" OR "Compliance" OR "Gobernanza'
@@ -167,7 +164,7 @@ except Exception:
 modelos_ordenados = sorted(
     modelos_disponibles,
     key=lambda x: (0 if "lite" in x else (1 if "flash" in x else 2)),
-) or ["gemini-3.8-flash-lite", "gemini-3.8-flash"]
+) or ["gemini-flash-lite-latest", "gemini-3.8-flash"]
 
 resultado = {"ofertas_seleccionadas": []}
 for modelo_actual in modelos_ordenados[:6]:
@@ -190,6 +187,7 @@ for modelo_actual in modelos_ordenados[:6]:
 def limpiar_texto(t):
   if not t:
     return ""
+  t = str(t)
   reemplazos = {
       "“": '"',
       "”": '"',
@@ -202,53 +200,59 @@ def limpiar_texto(t):
   }
   for k, v in reemplazos.items():
     t = t.replace(k, v)
+  # Cortar palabras o enlaces de más de 45 caracteres seguidos para que nunca rompan el margen del PDF
+  t = re.sub(r"(\S{45})(\S+)", r"\1 \2", t)
   return t.encode("latin-1", "ignore").decode("latin-1")
+
+
+def escribir_parrafo(pdf, texto, alto=5):
+  texto_limpio = limpiar_texto(texto).strip()
+  if not texto_limpio:
+    return
+  pdf.set_x(pdf.l_margin)
+  pdf.multi_cell(
+      0,
+      alto,
+      texto_limpio,
+      new_x="LMARGIN",
+      new_y="NEXT",
+      wrapmode="CHAR",
+  )
 
 
 def crear_pdf_ats(cv_data, ruta_archivo):
   pdf = FPDF()
+  pdf.set_margins(15, 15, 15)
   pdf.set_auto_page_break(auto=True, margin=15)
   pdf.add_page()
 
   # Encabezado limpio para lectura perfecta de ATS
-  pdf.set_font("Helvetica", "B", 18)
-  pdf.cell(
-      0,
-      9,
-      limpiar_texto("BARBARA ISABEL PICCOLO OBALDO"),
-      new_x="LMARGIN",
-      new_y="NEXT",
-  )
+  pdf.set_font("Helvetica", "B", 17)
+  escribir_parrafo(pdf, "BARBARA ISABEL PICCOLO OBALDO", 8)
 
   pdf.set_font("Helvetica", "B", 11)
   pdf.set_text_color(40, 80, 140)
-  pdf.multi_cell(0, 6, limpiar_texto(cv_data.get("titulo_adaptado", "")))
+  escribir_parrafo(
+      pdf, cv_data.get("titulo_adaptado", "Especialista en LegalOps, IA y RGPD"), 6
+  )
 
-  # Línea destacada de Ciudadanía Europea (Evita descarte inmediato de RRHH en España)
+  # Línea destacada de Ciudadanía Europea
   pdf.set_font("Helvetica", "B", 9)
   pdf.set_text_color(0, 110, 60)
-  pdf.cell(
-      0,
+  escribir_parrafo(
+      pdf,
+      "CIUDADANIA EUROPEA (UE) - Permiso de trabajo inmediato en España y UE"
+      " (Sin necesidad de visado)",
       6,
-      limpiar_texto(
-          "CIUDADANIA EUROPEA (UE) - Permiso de trabajo inmediato en España y"
-          " UE (Sin necesidad de visado)"
-      ),
-      new_x="LMARGIN",
-      new_y="NEXT",
   )
 
   pdf.set_font("Helvetica", "", 9)
   pdf.set_text_color(80, 80, 80)
-  pdf.cell(
-      0,
+  escribir_parrafo(
+      pdf,
+      "Portafolio Web & GitHub: github.com/barbarapiccolo/cvlegal | Modalidad:"
+      " Remoto / Traslado a España",
       5,
-      limpiar_texto(
-          "Portafolio Web & GitHub: https://github.com/barbarapiccolo/cvlegal |"
-          " Modalidad: Remoto / Traslado a España"
-      ),
-      new_x="LMARGIN",
-      new_y="NEXT",
   )
   pdf.ln(3)
 
@@ -265,7 +269,7 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   )
   pdf.ln(2)
   pdf.set_font("Helvetica", "", 10)
-  pdf.multi_cell(0, 5, limpiar_texto(cv_data.get("resumen_ejecutivo", "")))
+  escribir_parrafo(pdf, cv_data.get("resumen_ejecutivo", ""), 5)
   pdf.ln(4)
 
   # Competencias / Keywords ATS
@@ -281,7 +285,7 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   pdf.ln(2)
   pdf.set_font("Helvetica", "", 10)
   skills = " | ".join(cv_data.get("competencias_ats", []))
-  pdf.multi_cell(0, 5, limpiar_texto(skills))
+  escribir_parrafo(pdf, skills, 5)
   pdf.ln(4)
 
   # Experiencia Relevante Adaptada
@@ -297,10 +301,10 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   pdf.ln(2)
   for exp in cv_data.get("experiencia_adaptada", []):
     pdf.set_font("Helvetica", "B", 10)
-    pdf.multi_cell(0, 6, limpiar_texto(exp.get("cargo_y_empresa", "")))
+    escribir_parrafo(pdf, exp.get("cargo_y_empresa", ""), 6)
     pdf.set_font("Helvetica", "", 10)
     for logro in exp.get("logros", []):
-      pdf.multi_cell(0, 5, limpiar_texto(f"- {logro}"))
+      escribir_parrafo(pdf, f"- {logro}", 5)
     pdf.ln(2)
 
   # Educación
@@ -316,7 +320,7 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   pdf.ln(2)
   pdf.set_font("Helvetica", "", 10)
   for edu in cv_data.get("educacion_y_certificaciones", []):
-    pdf.multi_cell(0, 5, limpiar_texto(f"- {edu}"))
+    escribir_parrafo(pdf, f"- {edu}", 5)
 
   pdf.output(ruta_archivo)
 
@@ -372,7 +376,7 @@ for idx, of in enumerate(seleccionadas):
       " este texto directo en tu Correo]({link_mailto})**"
   )
 
-  requests.post(
+  res_issue = requests.post(
       f"https://api.github.com/repos/{REPO}/issues",
       headers={
           "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -387,3 +391,4 @@ for idx, of in enumerate(seleccionadas):
           "assignees": [USUARIO],
       },
   )
+  print(f"✅ Issue y PDF creados para: {of.get('empresa_o_rol')}")
