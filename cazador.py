@@ -53,12 +53,9 @@ for q in queries:
           "snippet": item.get("snippet", ""),
       })
 
-print(
-    f"Se encontraron {len(ofertas_crudas)} ofertas en bruto. Analizando todas"
-    " en 1 sola llamada..."
-)
+print(f"Se encontraron {len(ofertas_crudas)} ofertas en bruto.")
 
-# 3. Filtrar TODAS las ofertas en UNA SOLA llamada a Gemini (evita límite de 5 req/min)
+# 3. Preparar el prompt en una sola llamada
 prompt = (
     "Analiza la siguiente lista de vacantes o páginas de empresas:\n"
     f"{json.dumps(ofertas_crudas, ensure_ascii=False, indent=2)}\n\n"
@@ -88,26 +85,56 @@ prompt = (
     "}"
 )
 
-# Sistema de reintento automático por si el servidor de Google da 503 (alta demanda)
+# Detectar automáticamente todos los modelos Gemini disponibles en tu cuenta para saltar si uno da 503
+modelos_disponibles = []
+try:
+  for m in client.models.list():
+    nombre = m.name.replace("models/", "")
+    if (
+        "gemini" in nombre
+        and "embedding" not in nombre
+        and "vision" not in nombre
+        and "imagen" not in nombre
+        and "veo" not in nombre
+        and "audio" not in nombre
+        and "tts" not in nombre
+    ):
+      modelos_disponibles.append(nombre)
+except Exception as e:
+  print(f"Aviso listando modelos: {e}")
+
+# Ordenar priorizando modelos ligeros/rápidos (lite/flash) que nunca se saturan
+modelos_ordenados = sorted(
+    modelos_disponibles,
+    key=lambda x: (0 if "lite" in x else (1 if "flash" in x else 2)),
+)
+if not modelos_ordenados:
+  modelos_ordenados = [
+      "gemini-3.8-flash-lite",
+      "gemini-3.8-flash",
+      "gemini-3.8-pro",
+      "gemini-2.0-flash",
+  ]
+
+print(f"Modelos en cola de respaldo anti-503: {modelos_ordenados[:6]}")
+
 resultado = {"ofertas_seleccionadas": []}
-for intento in range(3):
+for modelo_actual in modelos_ordenados[:6]:
   try:
+    print(f"Probando con modelo: {modelo_actual}...")
     respuesta = client.models.generate_content(
-        model="gemini-3.8-flash",
+        model=modelo_actual,
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json"
         ),
     )
     resultado = json.loads(respuesta.text)
-    print("¡Análisis completado con éxito por Gemini!")
+    print(f"✅ ¡Análisis completado con éxito usando {modelo_actual}!")
     break
   except Exception as e:
-    print(
-        f"Intento {intento + 1} - Servidor ocupado ({e}). Reintentando en 20"
-        " segundos..."
-    )
-    time.sleep(20)
+    print(f"⚠️ {modelo_actual} ocupado o no compatible ({e}). Saltando al siguiente...")
+    time.sleep(5)
 
 # 4. Crear una tarjeta (Issue) en GitHub por cada oferta aprobada
 seleccionadas = resultado.get("ofertas_seleccionadas", [])
