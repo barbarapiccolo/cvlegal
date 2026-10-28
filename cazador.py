@@ -10,8 +10,8 @@ import requests
 SERPER_API_KEY = os.environ.get("SERPER_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-REPO = os.environ.get("GITHUB_REPOSITORY")  # barbarapiccolo/cvlegal
-USUARIO = os.environ.get("GITHUB_ACTOR")  # barbarapiccolo
+REPO = os.environ.get("GITHUB_REPOSITORY")
+USUARIO = os.environ.get("GITHUB_ACTOR")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -53,29 +53,29 @@ for item in ofertas_crudas:
   link = item.get("link", "")
   snippet = item.get("snippet", "")
 
-  prompt = f"""
-    Analiza esta vacante o página de empresa:
-    Título: {titulo}
-    Resumen: {snippet}
-    Link: {link}
-
-    Mi CV actual en el repositorio:
-    {cv_base[:6000]}
-
-    REGLAS ESTRICTAS DE FILTRADO:
-    1. Si la oferta está en inglés o exige "Inglés fluido / C1 / High English" excluyente, DESCÁRTALA (aceptada: false).
-    2. Si exige colegiación obligatoria en España para litigar en juzgados (procesal puro), DESCÁRTALA (aceptada: false).
-    3. Si es en español y busca LegalOps, Compliance, RGPD, IA, Contratos o Innovación Legal, ACÉPTALA (aceptada: true).
-
-    Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta:
-    {{
-      "aceptada": true,
-      "empresa_o_rol": "Nombre del puesto y empresa",
-      "asunto_correo": "Asunto atractivo para postular o contactar",
-      "mensaje_postulacion": "Carta/mensaje corto, directo y persuasivo en español adaptado a esta oferta e incluyendo el link a mi portafolio https://github.com/barbarapiccolo/cvlegal",
-      "puntos_clave_cv": "3 puntos de mi CV reescritos con las palabras clave exactas de esta oferta"
-    }}
-    """
+  prompt = (
+      "Analiza esta vacante o página de empresa:\n"
+      f"Título: {titulo}\nResumen: {snippet}\nLink: {link}\n\n"
+      f"Mi CV actual en el repositorio:\n{cv_base[:6000]}\n\n"
+      "REGLAS ESTRICTAS DE FILTRADO:\n"
+      '1. Si la oferta está en inglés o exige "Inglés fluido / C1 / High English"'
+      " excluyente, DESCÁRTALA (aceptada: false).\n"
+      "2. Si exige colegiación obligatoria en España para litigar en juzgados"
+      " (procesal puro), DESCÁRTALA (aceptada: false).\n"
+      "3. Si es en español y busca LegalOps, Compliance, RGPD, IA, Contratos o"
+      " Innovación Legal, ACÉPTALA (aceptada: true).\n\n"
+      "Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta:\n"
+      "{\n"
+      '  "aceptada": true,\n'
+      '  "empresa_o_rol": "Nombre del puesto y empresa",\n'
+      '  "asunto_correo": "Asunto atractivo para postular o contactar",\n'
+      '  "mensaje_postulacion": "Carta/mensaje corto, directo y persuasivo en'
+      " español adaptado a esta oferta e incluyendo el link a mi portafolio"
+      ' https://github.direc/barbarapiccolo/cvlegal",\n'
+      '  "puntos_clave_cv": "3 puntos de mi CV reescritos con las palabras'
+      ' clave exactas de esta oferta"\n'
+      "}"
+  )
 
   try:
     respuesta = client.models.generate_content(
@@ -96,16 +96,27 @@ for item in ofertas_crudas:
     cuerpo_encoded = urllib.parse.quote(resultado["mensaje_postulacion"])
     link_mailto = f"mailto:?subject={asunto_encoded}&body={cuerpo_encoded}"
 
-    cuerpo_issue = f"""🔔 Hola @{USUARIO}, encontré una oferta en español ideal para tu perfil:
+    cuerpo_issue = (
+        f"🔔 Hola @{USUARIO}, encontré una oferta en español ideal para tu"
+        " perfil:\n\n### 🎯 Oferta Detectada\n**Rol / Empresa:**"
+        f" {resultado['empresa_o_rol']}\n🔗 **[Ver Oferta Original]({link})**\n\n---"
+        "\n\n### ✉️ Mensaje Listo para Enviar o Pegar\n> **Asunto sugerido:**"
+        f" {resultado['asunto_correo']}\n\n```text\n"
+        f"{resultado['mensaje_postulacion']}\n```\n\n🚀 **[Toca aquí desde el"
+        " móvil para abrir tu Correo con el texto ya"
+        f" pegado]({link_mailto})**\n\n---\n\n### 🛠️ Ajuste sugerido para tu CV"
+        f" en esta oferta:\n{resultado['puntos_clave_cv']}"
+    )
 
-### 🎯 Oferta Detectada
-**Rol / Empresa:** {resultado['empresa_o_rol']}
-🔗 **[Ver Oferta Original]({link})**
-
----
-
-### ✉️ Mensaje Listo para Enviar o Pegar
-> **Asunto sugerido:** {resultado['asunto_correo']}
-
-```text
-{resultado['mensaje_postulacion']}
+    requests.post(
+        f"https://api.github.com/repos/{REPO}/issues",
+        headers={
+            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github+json",
+        },
+        json={
+            "title": f"💼 Oferta: {resultado['empresa_o_rol']}",
+            "body": cuerpo_issue,
+            "assignees": [USUARIO],
+        },
+    )
