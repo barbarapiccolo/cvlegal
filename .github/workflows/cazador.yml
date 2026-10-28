@@ -1,0 +1,33 @@
+name: Cazador de Empleo LegalOps
+
+on:
+  schedule:
+    - cron: '0 11 * * 1-5' # Se ejecuta Lunes a Viernes a las 7:00 AM Venezuela / 1:00 PM España
+  workflow_dispatch:       # Botón para probarlo manualmente ahora mismo
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  buscar_ofertas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Leer tu repositorio cvlegal
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar librerías
+        run: pip install requests google-genai
+
+      - name: Ejecutar Agente Cazador
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: python cazador.py
