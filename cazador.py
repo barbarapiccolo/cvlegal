@@ -38,39 +38,37 @@ try:
 except Exception:
   pass
 
-# 2. Búsqueda X-Ray con BLOQUEO de términos de inglés directamente en Google
-filtro_anti_ingles = (
-    '-"C1" -"C2" -"B2" -"fluent" -"English" -"inglés alto" -"inglés fluido"'
-    ' -"inglés avanzado" -"bilingüe" -"indispensable inglés"'
-)
+# 2. Búsqueda enfocada en puestos en ESPAÑOL (RGPD, DPO, Compliance, LegalTech, Mercantil Tech)
+filtro_anti_ingles = '-"C1" -"C2" -"fluent English" -"inglés fluido" -"inglés muy alto" -"bilingüe"'
 
 queries = [
+    # 1. Puestos de Privacidad, RGPD, DPO y Compliance en España y Teletrabajo (100% mercado en español)
     (
-        '(site:jobs.lever.co OR site:boards.greenhouse.io OR'
-        ' site:apply.workable.com OR site:teamtailor.com OR'
-        ' site:factorialhr.es OR site:welcometothejungle.com) ("Legal" OR'
-        ' "Abogado" OR "Jurista" OR "Compliance" OR "Privacidad" OR "RGPD")'
-        ' ("España" OR "Madrid" OR "Barcelona" OR "Remoto" OR "Teletrabajo" OR'
-        f' "LATAM") {filtro_anti_ingles}'
+        '("Consultor RGPD" OR "Protección de Datos" OR "DPO" OR "Compliance" OR'
+        ' "Cumplimiento Normativo" OR "Derecho Digital") ("empleo" OR "oferta"'
+        ' OR "vacante" OR "trabaja con nosotros") ("Madrid" OR "Barcelona" OR'
+        ' "Valencia" OR "Teletrabajo" OR "Remoto" OR "España") -curso -master'
+        f" -blog {filtro_anti_ingles}"
     ),
+    # 2. Portales de empleo españoles y remotos hispanos
     (
-        '(site:infojobs.net OR site:es.indeed.com/viewjob OR'
-        ' site:getonbrd.com/empleos OR site:tecnoempleo.com) ("Legal'
-        ' Operations" OR "LegalOps" OR "LegalTech" OR "RGPD" OR "Compliance"'
-        ' OR "Inteligencia Artificial") ("Madrid" OR "Barcelona" OR "Valencia"'
-        f' OR "Teletrabajo" OR "Remoto") {filtro_anti_ingles}'
+        '(site:infojobs.net OR site:es.indeed.com OR site:tecnoempleo.com OR'
+        ' site:getonbrd.com/empleos OR site:welcometothejungle.com OR'
+        ' site:factorialhr.es OR site:teamtailor.com) ("Abogado" OR "Jurista"'
+        ' OR "Legal" OR "RGPD" OR "Compliance") ("Inteligencia Artificial" OR'
+        ' "Tecnología" OR "Digital" OR "Automatización" OR "LegalTech" OR'
+        f' "Mercantil") {filtro_anti_ingles}'
     ),
+    # 3. Operaciones Legales, Contratos SaaS y Consultoría Legal en español
     (
-        'intitle:"oferta" OR intitle:"vacante" OR intitle:"empleo" ("Legal'
-        ' Operations" OR "LegalTech" OR "RGPD" OR "Compliance" OR "Gobernanza'
-        ' de IA") ("España" OR "Madrid" OR "Barcelona" OR "Remoto" OR'
-        ' "Teletrabajo") -curso -master -universidad -facebook -blog'
-        f" {filtro_anti_ingles}"
+        '("Operaciones Legales" OR "Legal Operations" OR "LegalOps" OR "Gestor'
+        ' de Contratos" OR "Abogado In-house" OR "Asesor Jurídico") ("Remoto"'
+        ' OR "Teletrabajo" OR "Madrid" OR "Barcelona" OR "España") ("vacante"'
+        f' OR "oferta" OR "empleo") -curso -master -blog {filtro_anti_ingles}'
     ),
 ]
 
 
-# Función para entrar a la URL de la oferta y leer TODOS los requisitos ocultos
 def extraer_texto_completo_oferta(url):
   try:
     headers = {
@@ -88,15 +86,15 @@ def extraer_texto_completo_oferta(url):
       )
       texto = re.sub(r"<[^>]+>", " ", texto)
       texto = re.sub(r"\s+", " ", texto).strip()
-      return texto[:3500]
+      return texto[:3000]
   except Exception:
     pass
   return ""
 
 
-# Detector implacable por código antes de gastar IA
-patrones_ingles_prohibidos = re.compile(
-    r"(ingl[eé]s\s+(fluido|alto|avanzado|indispensable|excluyente|b2|c1|c2|biling[uü]e|profesional|imprescindible|necesario|conversacional)|nivel\s+(alto|avanzado|fluido|b2|c1|c2)\s+de\s+ingl[eé]s|fluent\s+in\s+english|english\s+(required|mandatory|fluent|c1|b2)|imprescindible\s+ingl[eé]s|indispensable\s+ingl[eé]s)",
+# Solo bloquea si pide inglés C1/C2/Fluido/Indispensable explícitamente
+patrones_ingles_excluyente = re.compile(
+    r"(ingl[eé]s\s+(fluido|muy\s+alto|c1|c2|biling[uü]e|indispensable|imprescindible|excluyente)|nivel\s+(c1|c2|biling[uü]e)\s+de\s+ingl[eé]s|fluent\s+in\s+english|english\s+(c1|c2|fluent|native)|imprescindible\s+nivel\s+alto\s+de\s+ingl[eé]s)",
     re.IGNORECASE,
 )
 
@@ -107,7 +105,7 @@ for q in queries:
   res = requests.post(
       "https://google.serper.dev/search",
       headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},
-      json={"q": q, "gl": "es", "hl": "es", "tbs": "qdr:m", "num": 6},
+      json={"q": q, "gl": "es", "hl": "es", "tbs": "qdr:m", "num": 8},
   )
   if res.status_code == 200:
     for item in res.json().get("organic", []):
@@ -119,69 +117,67 @@ for q in queries:
         titulo = item.get("title", "")
         snippet = item.get("snippet", "")
 
-        # Entrar a leer la página completa de la oferta
         contenido_pagina = extraer_texto_completo_oferta(link)
         texto_total = f"{titulo} {snippet} {contenido_pagina}"
 
-        # CANDADO 1: Si el texto de la página menciona inglés requerido, se destruye aquí mismo
-        if patrones_ingles_prohibidos.search(texto_total):
-          print(
-              f"❌ Descartada por exigir inglés en el texto de la página: {titulo}"
-          )
+        if patrones_ingles_excluyente.search(texto_total):
+          print(f"❌ Descartada por exigir inglés C1/Fluido: {titulo}")
           continue
 
         ofertas_crudas.append({
             "titulo": titulo,
             "link": link,
             "snippet": snippet,
-            "contenido_completo_oferta": (
-                contenido_pagina if contenido_pagina else snippet
+            "contenido_extraido": (
+                contenido_pagina[:2000] if contenido_pagina else snippet
             ),
         })
 
 print(
-    f"Se encontraron {len(ofertas_crudas)} vacantes libres de inglés explícito."
+    f"Se encontraron {len(ofertas_crudas)} candidatas para evaluar con Gemini."
 )
 if not ofertas_crudas:
-  print("No quedaron vacantes tras aplicar el filtro estricto anti-inglés.")
   exit(0)
 
-# 3. Filtrar con Gemini verificando el contenido completo de la oferta
+# 3. Filtrar con Gemini con criterio inteligente y equilibrado
 prompt = (
-    "Analiza la siguiente lista de vacantes de empleo (incluye el texto extraído"
-    " de cada página):\n"
-    f"{json.dumps(ofertas_crudas, ensure_ascii=False, indent=2)}\n\n"
-    "Mi perfil base (Bárbara Piccolo, con CIUDADANÍA EUROPEA / Pasaporte UE,"
-    " permiso de trabajo inmediato en España/UE sin necesidad de visado):\n"
-    f"{cv_base[:5000]}\n\n"
-    "REGLAS ESTRICTAS E INQUEBRANTABLES DE FILTRADO:\n"
-    "1. CERO INGLÉS (PRIORIDAD MÁXIMA): Revisa detenidamente el campo"
-    " 'contenido_completo_oferta'. Si la vacante está en inglés, o si en los"
-    " requisitos pide inglés (B2, C1, fluido, alto, avanzado, indispensable,"
-    " imprescindible, deseable o para trabajar con clientes internacionales en"
-    " inglés), DESCÁRTALA SIN EXCEPCIÓN. Solo acepta ofertas 100% en español"
-    " donde NO se pida inglés.\n"
-    "2. SOLO OFERTAS DE EMPLEO REALES: Descarta cursos, noticias, artículos,"
-    " directorios o agencias.\n"
-    "3. MODALIDAD Y UBICACIÓN: Como tengo CIUDADANÍA EUROPEA, acepta tanto"
-    " vacantes 100% Remotas / Teletrabajo COMO vacantes presenciales o"
-    " híbridas en España (Madrid, Barcelona, etc.). Descarta solo si exige"
-    " colegiación obligatoria para litigar en tribunales españoles.\n"
+    "Analiza la siguiente lista de resultados de búsqueda de empleo:\n"
+    f"{json.dumps(ofertas_crudas[:15], ensure_ascii=False, indent=2)}\n\n"
+    "Mi perfil base (Bárbara Piccolo, Abogada con CIUDADANÍA EUROPEA /"
+    " Pasaporte UE, especialista en Derecho Corporativo, RGPD/Privacidad,"
+    " Compliance, Gobernanza de IA y LegalOps):\n"
+    f"{cv_base[:4500]}\n\n"
+    "CRITERIOS DE SELECCIÓN:\n"
+    "1. TIENE QUE SER UNA OFERTA DE EMPLEO O PÁGINA DE VACANTES REALES:"
+    " Descarta cursos, másteres, noticias o artículos de blog.\n"
+    "2. CRITERIO DE IDIOMA (EQUILIBRADO): Descarta la oferta SOLO si está"
+    " redactada íntegramente en inglés o si exige 'Inglés C1 / Fluido /"
+    " Imprescindible / Excluyente'. Si la oferta está en español y NO menciona"
+    " inglés, o solo dice 'inglés valorable / deseable / básico / medio' (o si"
+    " solo hay botones de la web en inglés), ¡ACÉPTALA!\n"
+    "3. UBICACIÓN Y PERFIL: Tengo Ciudadanía Europea. Acepta ofertas Remotas /"
+    " Teletrabajo Y TAMBIÉN ofertas presenciales o híbridas en España (Madrid,"
+    " Barcelona, Valencia, etc.) en áreas de: RGPD/Protección de Datos,"
+    " Compliance, LegalTech, IA, Contratos Mercantiles, Asesoría Jurídica"
+    " Corporativa o LegalOps. (Solo descarta si exige ser abogado procesalista"
+    " litigando en juzgados españoles).\n"
     "4. Para cada oferta aprobada, genera mi CV COMPLETO optimizado para ATS"
     " en español destacando mi Ciudadanía Europea.\n\n"
     "Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura:\n"
     "{\n"
+    '  "resumen_descartes": ["Breve línea de por qué descartaste las que no'
+    ' elegiste"],\n'
     '  "ofertas_seleccionadas": [\n'
     "    {\n"
     '      "empresa_o_rol": "Nombre del Puesto - Empresa",\n'
     '      "modalidad": "Remoto / Híbrido en España / Presencial en España",\n'
-    '      "confirmacion_idioma": "Explica brevemente por qué confirmas que NO'
-    ' pide inglés",\n'
+    '      "confirmacion_idioma": "Ej: Oferta 100% en español (sin requisito'
+    ' excluyente de inglés)",\n'
     '      "link": "URL original de la vacante",\n'
     '      "asunto_correo": "Candidatura: [Nombre del Puesto] - Bárbara'
     ' Piccolo (Ciudadanía UE)",\n'
     '      "mensaje_postulacion": "Carta corta y persuasiva en español'
-    " destacando mi encaje en LegalOps/IA/RGPD, mi portafolio"
+    " destacando mi encaje en el puesto, mi portafolio"
     ' https://github.com/barbarapiccolo/cvlegal y mi Ciudadanía Europea",\n'
     '      "cv_ats": {\n'
     '        "titulo_adaptado": "Titular profesional con las keywords exactas'
@@ -233,7 +229,9 @@ for modelo_actual in modelos_ordenados[:6]:
         ),
     )
     resultado = json.loads(respuesta.text)
-    print(f"✅ ¡Filtrado anti-inglés y adaptación ATS completados con {modelo_actual}!")
+    print(f"✅ ¡Análisis completado con {modelo_actual}!")
+    for motivo in resultado.get("resumen_descartes", []):
+      print(f"   ℹ️ Descarte IA: {motivo}")
     break
   except Exception as e:
     print(f"⚠️ {modelo_actual} ocupado ({e}). Saltando...")
@@ -376,7 +374,7 @@ def crear_pdf_ats(cv_data, ruta_archivo):
 
 # 4. Generar el PDF para cada vacante aprobada
 seleccionadas = resultado.get("ofertas_seleccionadas", [])
-print(f"Procesando {len(seleccionadas)} vacantes 100% libres de inglés...")
+print(f"Procesando {len(seleccionadas)} vacantes aprobadas...")
 
 for idx, of in enumerate(seleccionadas):
   nombre_limpio = (
@@ -410,14 +408,14 @@ for idx, of in enumerate(seleccionadas):
   link_mailto = f"mailto:?subject={asunto_encoded}&body={cuerpo_encoded}"
 
   cuerpo_issue = (
-      f"🔔 Hola @{USUARIO}, encontré una vacante **100% en Español (Sin"
-      " requisito de inglés)** ideal para tu perfil con Ciudadanía UE:\n\n### 🎯"
-      f" Vacante Detectada\n**Puesto y Empresa:** {of.get('empresa_o_rol')}\n🌍"
-      f" **Modalidad:** {of.get('modalidad')}\n✅ **Verificación de Idioma:**"
-      f" {of.get('confirmacion_idioma', 'Sin requisito de inglés detectado')}\n🔗"
-      f" **[1. Ir al Portal de la Oferta para Postular]({of.get('link')})**\n\n---\n\n###"
-      " 📄 Tu CV en PDF Adaptado a esta Oferta (Anti-ATS + Ciudadanía UE)\n👉"
-      " **[2. 📥 TOCA AQUÍ PARA DESCARGAR TU CV EN PDF"
+      f"🔔 Hola @{USUARIO}, encontré una vacante en español ideal para tu"
+      " perfil con Ciudadanía UE:\n\n### 🎯 Vacante Detectada\n**Puesto y"
+      f" Empresa:** {of.get('empresa_o_rol')}\n🌍 **Modalidad:**"
+      f" {of.get('modalidad')}\n✅ **Idioma:**"
+      f" {of.get('confirmacion_idioma', 'Español')}\n🔗 **[1. Ir al Portal de"
+      f" la Oferta para Postular]({of.get('link')})**\n\n---\n\n### 📄 Tu CV en"
+      " PDF Adaptado a esta Oferta (Anti-ATS + Ciudadanía UE)\n👉 **[2. 📥 TOCA"
+      " AQUÍ PARA DESCARGAR TU CV EN PDF"
       f" ADAPTADO]({url_descarga_pdf})**\n\n---\n\n### ✉️ Mensaje / Carta de"
       " Presentación para Pegar en el Portal\n> **Asunto sugerido:**"
       f" {of.get('asunto_correo')}\n\n```text\n"
@@ -433,7 +431,7 @@ for idx, of in enumerate(seleccionadas):
       },
       json={
           "title": (
-              f"🇪🇺 [100% Español - {of.get('modalidad', 'Remoto')}]"
+              f"🇪🇺 [{of.get('modalidad', 'España/Remoto')}]"
               f" {of.get('empresa_o_rol')}"
           ),
           "body": cuerpo_issue,
