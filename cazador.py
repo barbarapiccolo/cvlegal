@@ -38,7 +38,12 @@ try:
 except Exception:
   pass
 
-# 2. Búsqueda X-Ray: Remoto (Global/LatAm/España) + Presencial/Híbrido en España (aprovechando Ciudadanía UE)
+# 2. Búsqueda X-Ray con BLOQUEO de términos de inglés directamente en Google
+filtro_anti_ingles = (
+    '-"C1" -"C2" -"B2" -"fluent" -"English" -"inglés alto" -"inglés fluido"'
+    ' -"inglés avanzado" -"bilingüe" -"indispensable inglés"'
+)
+
 queries = [
     (
         '(site:jobs.lever.co OR site:boards.greenhouse.io OR'
@@ -46,22 +51,54 @@ queries = [
         ' site:factorialhr.es OR site:welcometothejungle.com) ("Legal" OR'
         ' "Abogado" OR "Jurista" OR "Compliance" OR "Privacidad" OR "RGPD")'
         ' ("España" OR "Madrid" OR "Barcelona" OR "Remoto" OR "Teletrabajo" OR'
-        ' "LATAM")'
+        f' "LATAM") {filtro_anti_ingles}'
     ),
     (
         '(site:infojobs.net OR site:es.indeed.com/viewjob OR'
         ' site:getonbrd.com/empleos OR site:tecnoempleo.com) ("Legal'
         ' Operations" OR "LegalOps" OR "LegalTech" OR "RGPD" OR "Compliance"'
         ' OR "Inteligencia Artificial") ("Madrid" OR "Barcelona" OR "Valencia"'
-        ' OR "Teletrabajo" OR "Remoto")'
+        f' OR "Teletrabajo" OR "Remoto") {filtro_anti_ingles}'
     ),
     (
         'intitle:"oferta" OR intitle:"vacante" OR intitle:"empleo" ("Legal'
         ' Operations" OR "LegalTech" OR "RGPD" OR "Compliance" OR "Gobernanza'
         ' de IA") ("España" OR "Madrid" OR "Barcelona" OR "Remoto" OR'
         ' "Teletrabajo") -curso -master -universidad -facebook -blog'
+        f" {filtro_anti_ingles}"
     ),
 ]
+
+
+# Función para entrar a la URL de la oferta y leer TODOS los requisitos ocultos
+def extraer_texto_completo_oferta(url):
+  try:
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        )
+    }
+    r = requests.get(url, headers=headers, timeout=8)
+    if r.status_code == 200:
+      texto = re.sub(
+          r"<script.*?>.*?</script>", "", r.text, flags=re.DOTALL | re.I
+      )
+      texto = re.sub(
+          r"<style.*?>.*?</style>", "", texto, flags=re.DOTALL | re.I
+      )
+      texto = re.sub(r"<[^>]+>", " ", texto)
+      texto = re.sub(r"\s+", " ", texto).strip()
+      return texto[:3500]
+  except Exception:
+    pass
+  return ""
+
+
+# Detector implacable por código antes de gastar IA
+patrones_ingles_prohibidos = re.compile(
+    r"(ingl[eé]s\s+(fluido|alto|avanzado|indispensable|excluyente|b2|c1|c2|biling[uü]e|profesional|imprescindible|necesario|conversacional)|nivel\s+(alto|avanzado|fluido|b2|c1|c2)\s+de\s+ingl[eé]s|fluent\s+in\s+english|english\s+(required|mandatory|fluent|c1|b2)|imprescindible\s+ingl[eé]s|indispensable\s+ingl[eé]s)",
+    re.IGNORECASE,
+)
 
 ofertas_crudas = []
 urls_vistas = set()
@@ -79,59 +116,78 @@ for q in queries:
           link in texto for texto in links_existentes
       ):
         urls_vistas.add(link)
+        titulo = item.get("title", "")
+        snippet = item.get("snippet", "")
+
+        # Entrar a leer la página completa de la oferta
+        contenido_pagina = extraer_texto_completo_oferta(link)
+        texto_total = f"{titulo} {snippet} {contenido_pagina}"
+
+        # CANDADO 1: Si el texto de la página menciona inglés requerido, se destruye aquí mismo
+        if patrones_ingles_prohibidos.search(texto_total):
+          print(
+              f"❌ Descartada por exigir inglés en el texto de la página: {titulo}"
+          )
+          continue
+
         ofertas_crudas.append({
-            "titulo": item.get("title", ""),
+            "titulo": titulo,
             "link": link,
-            "snippet": item.get("snippet", ""),
+            "snippet": snippet,
+            "contenido_completo_oferta": (
+                contenido_pagina if contenido_pagina else snippet
+            ),
         })
 
-print(f"Se encontraron {len(ofertas_crudas)} posibles vacantes nuevas.")
+print(
+    f"Se encontraron {len(ofertas_crudas)} vacantes libres de inglés explícito."
+)
 if not ofertas_crudas:
+  print("No quedaron vacantes tras aplicar el filtro estricto anti-inglés.")
   exit(0)
 
-# 3. Filtrar con Gemini incluyendo tu ventaja de Ciudadanía Europea
+# 3. Filtrar con Gemini verificando el contenido completo de la oferta
 prompt = (
-    "Analiza la siguiente lista de resultados de búsqueda:\n"
+    "Analiza la siguiente lista de vacantes de empleo (incluye el texto extraído"
+    " de cada página):\n"
     f"{json.dumps(ofertas_crudas, ensure_ascii=False, indent=2)}\n\n"
     "Mi perfil base (Bárbara Piccolo, con CIUDADANÍA EUROPEA / Pasaporte UE,"
     " permiso de trabajo inmediato en España/UE sin necesidad de visado):\n"
-    f"{cv_base[:5500]}\n\n"
-    "REGLAS ESTRICTAS DE FILTRADO:\n"
-    "1. SOLO ACEPTA OFERTAS DE EMPLEO REALES (vacantes abiertas para"
-    " contratar). Descarta cursos, másteres, noticias, blogs o agencias"
-    " vendiendo servicios.\n"
-    "2. MODALIDAD Y UBICACIÓN: Como tengo CIUDADANÍA EUROPEA y no necesito"
-    " visado, ACEPTA tanto vacantes 100% Remotas / Teletrabajo (España, LATAM"
-    " o Global en español) COMO vacantes presenciales o híbridas en España"
-    " (Madrid, Barcelona, etc.) donde pueda trasladarme.\n"
-    "3. Si exige 'Inglés fluido / C1' como requisito excluyente o colegiación"
-    " obligatoria para litigar en juzgados españoles (procesal puro),"
-    " DESCÁRTALA.\n"
-    "4. Para cada oferta aceptada, redacta un CV COMPLETO optimizado para"
-    " sistemas ATS usando mis datos reales e inyectando las palabras clave"
-    " exactas de la vacante. En la carta y en el resumen deja muy claro que"
-    " poseo Ciudadanía Europea (permiso de trabajo en España/UE sin trámites"
-    " de extranjería) y disponibilidad inmediata remota o de traslado.\n\n"
+    f"{cv_base[:5000]}\n\n"
+    "REGLAS ESTRICTAS E INQUEBRANTABLES DE FILTRADO:\n"
+    "1. CERO INGLÉS (PRIORIDAD MÁXIMA): Revisa detenidamente el campo"
+    " 'contenido_completo_oferta'. Si la vacante está en inglés, o si en los"
+    " requisitos pide inglés (B2, C1, fluido, alto, avanzado, indispensable,"
+    " imprescindible, deseable o para trabajar con clientes internacionales en"
+    " inglés), DESCÁRTALA SIN EXCEPCIÓN. Solo acepta ofertas 100% en español"
+    " donde NO se pida inglés.\n"
+    "2. SOLO OFERTAS DE EMPLEO REALES: Descarta cursos, noticias, artículos,"
+    " directorios o agencias.\n"
+    "3. MODALIDAD Y UBICACIÓN: Como tengo CIUDADANÍA EUROPEA, acepta tanto"
+    " vacantes 100% Remotas / Teletrabajo COMO vacantes presenciales o"
+    " híbridas en España (Madrid, Barcelona, etc.). Descarta solo si exige"
+    " colegiación obligatoria para litigar en tribunales españoles.\n"
+    "4. Para cada oferta aprobada, genera mi CV COMPLETO optimizado para ATS"
+    " en español destacando mi Ciudadanía Europea.\n\n"
     "Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura:\n"
     "{\n"
     '  "ofertas_seleccionadas": [\n'
     "    {\n"
     '      "empresa_o_rol": "Nombre del Puesto - Empresa",\n'
-    '      "modalidad": "Indica si es Remoto, Híbrido en España o Presencial en'
-    ' España",\n'
+    '      "modalidad": "Remoto / Híbrido en España / Presencial en España",\n'
+    '      "confirmacion_idioma": "Explica brevemente por qué confirmas que NO'
+    ' pide inglés",\n'
     '      "link": "URL original de la vacante",\n'
     '      "asunto_correo": "Candidatura: [Nombre del Puesto] - Bárbara'
     ' Piccolo (Ciudadanía UE)",\n'
-    '      "mensaje_postulacion": "Carta corta, directa y persuasiva en'
-    " español destacando mi encaje en LegalOps/IA/RGPD, mi portafolio"
-    " https://github.com/barbarapiccolo/cvlegal y que cuento con Ciudadanía"
-    ' Europea para contratación inmediata",\n'
+    '      "mensaje_postulacion": "Carta corta y persuasiva en español'
+    " destacando mi encaje en LegalOps/IA/RGPD, mi portafolio"
+    ' https://github.com/barbarapiccolo/cvlegal y mi Ciudadanía Europea",\n'
     '      "cv_ats": {\n'
     '        "titulo_adaptado": "Titular profesional con las keywords exactas'
     ' del puesto",\n'
     '        "resumen_ejecutivo": "Párrafo potente de 4 líneas alineado 100% a'
-    " la vacante, mencionando Ciudadanía Europea y disponibilidad para España"
-    ' o Remoto",\n'
+    ' la vacante, mencionando Ciudadanía Europea",\n'
     '        "competencias_ats": ["Keyword 1", "Keyword 2", "Keyword 3",'
     ' "Keyword 4", "Keyword 5", "Keyword 6"],\n'
     '        "experiencia_adaptada": [\n'
@@ -177,7 +233,7 @@ for modelo_actual in modelos_ordenados[:6]:
         ),
     )
     resultado = json.loads(respuesta.text)
-    print(f"✅ ¡Filtrado y adaptación ATS completados con {modelo_actual}!")
+    print(f"✅ ¡Filtrado anti-inglés y adaptación ATS completados con {modelo_actual}!")
     break
   except Exception as e:
     print(f"⚠️ {modelo_actual} ocupado ({e}). Saltando...")
@@ -200,7 +256,6 @@ def limpiar_texto(t):
   }
   for k, v in reemplazos.items():
     t = t.replace(k, v)
-  # Cortar palabras o enlaces de más de 45 caracteres seguidos para que nunca rompan el margen del PDF
   t = re.sub(r"(\S{45})(\S+)", r"\1 \2", t)
   return t.encode("latin-1", "ignore").decode("latin-1")
 
@@ -226,7 +281,6 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   pdf.set_auto_page_break(auto=True, margin=15)
   pdf.add_page()
 
-  # Encabezado limpio para lectura perfecta de ATS
   pdf.set_font("Helvetica", "B", 17)
   escribir_parrafo(pdf, "BARBARA ISABEL PICCOLO OBALDO", 8)
 
@@ -236,7 +290,6 @@ def crear_pdf_ats(cv_data, ruta_archivo):
       pdf, cv_data.get("titulo_adaptado", "Especialista en LegalOps, IA y RGPD"), 6
   )
 
-  # Línea destacada de Ciudadanía Europea
   pdf.set_font("Helvetica", "B", 9)
   pdf.set_text_color(0, 110, 60)
   escribir_parrafo(
@@ -256,7 +309,6 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   )
   pdf.ln(3)
 
-  # Resumen Ejecutivo
   pdf.set_font("Helvetica", "B", 11)
   pdf.set_text_color(0, 0, 0)
   pdf.cell(
@@ -272,7 +324,6 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   escribir_parrafo(pdf, cv_data.get("resumen_ejecutivo", ""), 5)
   pdf.ln(4)
 
-  # Competencias / Keywords ATS
   pdf.set_font("Helvetica", "B", 11)
   pdf.cell(
       0,
@@ -288,7 +339,6 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   escribir_parrafo(pdf, skills, 5)
   pdf.ln(4)
 
-  # Experiencia Relevante Adaptada
   pdf.set_font("Helvetica", "B", 11)
   pdf.cell(
       0,
@@ -307,7 +357,6 @@ def crear_pdf_ats(cv_data, ruta_archivo):
       escribir_parrafo(pdf, f"- {logro}", 5)
     pdf.ln(2)
 
-  # Educación
   pdf.set_font("Helvetica", "B", 11)
   pdf.cell(
       0,
@@ -325,9 +374,9 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   pdf.output(ruta_archivo)
 
 
-# 4. Generar el PDF para cada vacante, subirlo al repo y crear el Issue con el botón de descarga
+# 4. Generar el PDF para cada vacante aprobada
 seleccionadas = resultado.get("ofertas_seleccionadas", [])
-print(f"Procesando {len(seleccionadas)} vacantes y generando PDFs...")
+print(f"Procesando {len(seleccionadas)} vacantes 100% libres de inglés...")
 
 for idx, of in enumerate(seleccionadas):
   nombre_limpio = (
@@ -361,16 +410,16 @@ for idx, of in enumerate(seleccionadas):
   link_mailto = f"mailto:?subject={asunto_encoded}&body={cuerpo_encoded}"
 
   cuerpo_issue = (
-      f"🔔 Hola @{USUARIO}, encontré una vacante **{of.get('modalidad')}**"
-      " ideal para tu perfil con Ciudadanía UE:\n\n### 🎯 Vacante"
-      f" Detectada\n**Puesto y Empresa:** {of.get('empresa_o_rol')}\n🌍"
-      f" **Modalidad:** {of.get('modalidad')}\n🔗 **[1. Ir al Portal de la"
-      f" Oferta para Postular]({of.get('link')})**\n\n---\n\n### 📄 Tu CV en"
-      " PDF Adaptado a esta Oferta (Anti-ATS + Ciudadanía UE)\nYa generé tu"
-      " archivo PDF limpio con las palabras clave de la empresa y destacando"
-      " tu permiso de trabajo europeo:\n👉 **[2. 📥 TOCA AQUÍ PARA DESCARGAR TU"
-      f" CV EN PDF ADAPTADO]({url_descarga_pdf})**\n\n---\n\n### ✉️ Mensaje /"
-      " Carta de Presentación para Pegar en el Portal\n> **Asunto sugerido:**"
+      f"🔔 Hola @{USUARIO}, encontré una vacante **100% en Español (Sin"
+      " requisito de inglés)** ideal para tu perfil con Ciudadanía UE:\n\n### 🎯"
+      f" Vacante Detectada\n**Puesto y Empresa:** {of.get('empresa_o_rol')}\n🌍"
+      f" **Modalidad:** {of.get('modalidad')}\n✅ **Verificación de Idioma:**"
+      f" {of.get('confirmacion_idioma', 'Sin requisito de inglés detectado')}\n🔗"
+      f" **[1. Ir al Portal de la Oferta para Postular]({of.get('link')})**\n\n---\n\n###"
+      " 📄 Tu CV en PDF Adaptado a esta Oferta (Anti-ATS + Ciudadanía UE)\n👉"
+      " **[2. 📥 TOCA AQUÍ PARA DESCARGAR TU CV EN PDF"
+      f" ADAPTADO]({url_descarga_pdf})**\n\n---\n\n### ✉️ Mensaje / Carta de"
+      " Presentación para Pegar en el Portal\n> **Asunto sugerido:**"
       f" {of.get('asunto_correo')}\n\n```text\n"
       f"{of.get('mensaje_postulacion')}\n```\n\n🚀 **[O toca aquí para abrir"
       " este texto directo en tu Correo]({link_mailto})**"
@@ -384,7 +433,7 @@ for idx, of in enumerate(seleccionadas):
       },
       json={
           "title": (
-              f"🇪🇺 [{of.get('modalidad', 'España/Remoto')}]"
+              f"🇪🇺 [100% Español - {of.get('modalidad', 'Remoto')}]"
               f" {of.get('empresa_o_rol')}"
           ),
           "body": cuerpo_issue,
