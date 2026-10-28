@@ -2,12 +2,12 @@ name: Cazador de Empleo LegalOps
 
 on:
   schedule:
-    - cron: '0 11 * * 1-5' # Se ejecuta Lunes a Viernes a las 7:00 AM Venezuela / 1:00 PM España
-  workflow_dispatch:       # Botón para probarlo manualmente ahora mismo
+    - cron: '0 11 * * 1-5' # Lunes a Viernes 7:00 AM Venezuela
+  workflow_dispatch:
 
 permissions:
   issues: write
-  contents: read
+  contents: write          # Permiso para guardar tus PDFs adaptados en el repo
 
 jobs:
   buscar_ofertas:
@@ -21,10 +21,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Instalar librerías
-        run: pip install requests google-genai
+      - name: Instalar librerías (Gemini + Generador PDF)
+        run: pip install requests google-genai fpdf2
 
-      - name: Ejecutar Agente Cazador
+      - name: Ejecutar Agente Cazador y Generador de CV
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
