@@ -70,42 +70,45 @@ try:
 except Exception:
   pass
 
-# 2. Exclusiones: Bloqueamos Inglés C1, Becarios, Ingeniería Informática/Redes, Colegiación obligatoria y Litigación
+# 2. Exclusiones: Bloqueamos palabras en inglés, Inglés C1, Becarios, Ingeniería TI y Colegiación obligatoria
 filtro_exclusiones = (
-    '-"C1" -"C2" -"fluent English" -"inglés fluido" -"bilingüe" -"becario"'
+    '-"C1" -"C2" -"fluent" -"inglés fluido" -"inglés alto" -"bilingüe"'
+    ' -"requirements" -"responsibilities" -"we are looking" -"becario"'
     ' -"becaria" -"prácticas" -"internship" -"Qualys" -"Pentester" -"CISSP"'
     ' -"CISM" -"ITIL" -"Ingeniería Informática" -"Telecomunicaciones"'
     ' -"colegiado ejerciente" -"colegiación obligatoria" -"procesal"'
     ' -"litigación" -"juzgados" -"Administración Pública" -"temporal"'
 )
 
+# Búsquedas obligando a que la oferta esté redactada en español
 queries = [
-    # 1. Roles de Compliance, Prevención de Blanqueo (PBC/AML), RGPD, DPO y Privacidad (No exigen colegiación)
+    # 1. Cumplimiento Normativo, Prevención de Blanqueo (PBC), RGPD y Protección de Datos
     (
-        '("Técnico de Compliance" OR "Compliance Officer" OR "Especialista en'
-        ' Compliance" OR "Cumplimiento Normativo" OR "Consultor RGPD" OR'
-        ' "Protección de Datos" OR "DPO" OR "Prevención de Blanqueo" OR "PBC")'
-        ' ("Madrid" OR "Barcelona" OR "Teletrabajo" OR "Remoto" OR "España")'
-        f' ("oferta" OR "vacante" OR "empleo") -curso -master -blog {filtro_exclusiones}'
-    ),
-    # 2. Roles de Legal Operations (LegalOps), Gestión de Contratos (Contract Manager), LegalTech y GRC Normativo
-    (
-        '("Legal Operations" OR "LegalOps" OR "Operaciones Legales" OR "Gestor'
-        ' de Contratos" OR "Contract Manager" OR "LegalTech" OR "Asesor'
-        ' Jurídico" OR "Consultor Legal" OR "Derecho Digital") ("SaaS" OR'
-        ' "Tecnología" OR "Inteligencia Artificial" OR "Contratos" OR "RGPD" OR'
-        ' "FinTech" OR "Mercantil" OR "DORA" OR "ISO 27001") ("Madrid" OR'
-        ' "Barcelona" OR "Remoto" OR "Teletrabajo" OR "España") -curso -master'
+        '("Cumplimiento Normativo" OR "Técnico de Compliance" OR "Especialista'
+        ' en Compliance" OR "Consultor RGPD" OR "Protección de Datos" OR'
+        ' "Delegado de Protección de Datos" OR "Prevención de Blanqueo")'
+        ' ("funciones" OR "requisitos" OR "experiencia") ("Madrid" OR'
+        ' "Barcelona" OR "Teletrabajo" OR "Remoto" OR "España") -curso -master'
         f" -blog {filtro_exclusiones}"
     ),
-    # 3. Portales de empleo buscando perfiles jurídicos/normativos en empresa privada, banca, FinTech y consultoría
+    # 2. Operaciones Legales, Gestión de Contratos, Derecho Digital y LegalTech en español
     (
-        '(site:infojobs.net OR site:es.indeed.com OR site:welcometothejungle.com'
-        ' OR site:getonbrd.com/empleos OR site:factorialhr.es OR'
-        ' site:teamtailor.com) ("Compliance" OR "RGPD" OR "Protección de Datos"'
-        ' OR "Legal Operations" OR "LegalTech" OR "Contratos" OR "Jurídico" OR'
-        ' "Jurista") ("FinTech" OR "Banca" OR "Tecnología" OR "Inteligencia'
-        f' Artificial" OR "ISO 27001" OR "DORA" OR "Mercantil") {filtro_exclusiones}'
+        '("Operaciones Legales" OR "Gestor de Contratos" OR "Gestión de'
+        ' Contratos" OR "Asesor Jurídico" OR "Consultor Legal" OR "Derecho'
+        ' Digital" OR "LegalTech") ("Tecnología" OR "Inteligencia Artificial"'
+        ' OR "Contratos" OR "RGPD" OR "FinTech" OR "Mercantil" OR "DORA" OR'
+        ' "ISO 27001") ("Madrid" OR "Barcelona" OR "Remoto" OR "Teletrabajo" OR'
+        f' "España") -curso -master -blog {filtro_exclusiones}'
+    ),
+    # 3. Portales de empleo con términos estrictamente en español
+    (
+        '(site:infojobs.net OR site:es.indeed.com OR'
+        ' site:welcometothejungle.com/es OR site:getonbrd.com/empleos OR'
+        ' site:factorialhr.es OR site:teamtailor.com) ("Cumplimiento" OR'
+        ' "Protección de Datos" OR "RGPD" OR "Contratos" OR "Asesoría Jurídica"'
+        ' OR "Operaciones Legales") ("FinTech" OR "Banca" OR "Tecnología" OR'
+        ' "Inteligencia Artificial" OR "ISO 27001" OR "DORA" OR "Mercantil")'
+        f" {filtro_exclusiones}"
     ),
 ]
 
@@ -133,9 +136,15 @@ def extraer_texto_completo_oferta(url):
   return ""
 
 
-# Bloqueo automático si el texto exige colegiación en España, ingeniería TIC o inglés C1
+# CANDADO 1: Detector de ofertas redactadas en inglés (en título o snippet)
+detector_oferta_en_ingles = re.compile(
+    r"\b(we are looking|you will|requirements|responsibilities|qualifications|what you'll do|about the role|about us|years of experience|working with|join our team|must have|nice to have|our client|is seeking)\b",
+    re.IGNORECASE,
+)
+
+# CANDADO 2: Detector de requisitos excluyentes (Inglés C1/B2 alto, Colegiación o Ingeniería TI)
 patrones_excluyentes = re.compile(
-    r"(ingl[eé]s\s+(fluido|muy\s+alto|c1|c2|biling[uü]e|indispensable|imprescindible|excluyente)|nivel\s+(c1|c2|biling[uü]e)\s+de\s+ingl[eé]s|fluent\s+in\s+english|english\s+(c1|c2|fluent|native)|becario|becaria|convenio\s+de\s+pr[aá]cticas|colegiaci[oó]n\s+obligatoria|abogado\s+ejerciente|colegiado\s+ejerciente|ingenier[ií]a\s+inform[aá]tica|ingenier[ií]a\s+de\s+telecomunicaciones)",
+    r"(ingl[eé]s\s+(fluido|muy\s+alto|alto|avanzado|c1|c2|biling[uü]e|indispensable|imprescindible|excluyente|profesional)|nivel\s+(alto|avanzado|c1|c2|biling[uü]e)\s+de\s+ingl[eé]s|fluent\s+in\s+english|english\s+(c1|c2|fluent|native|required|mandatory)|becario|becaria|convenio\s+de\s+pr[aá]cticas|colegiaci[oó]n\s+obligatoria|abogado\s+ejerciente|colegiado\s+ejerciente|ingenier[ií]a\s+inform[aá]tica|ingenier[ií]a\s+de\s+telecomunicaciones)",
     re.IGNORECASE,
 )
 
@@ -158,12 +167,24 @@ for q in queries:
         titulo = item.get("title", "")
         snippet = item.get("snippet", "")
 
+        # Si el resumen de Google ya viene redactado en inglés, se descarta en el acto
+        if detector_oferta_en_ingles.search(f"{titulo} {snippet}"):
+          print(f"❌ Descartada por estar redactada en inglés: {titulo}")
+          continue
+
         contenido_pagina = extraer_texto_completo_oferta(link)
         texto_total = f"{titulo} {snippet} {contenido_pagina}"
 
+        # Si el cuerpo de la página está redactado en inglés (más de 2 frases típicas en inglés), fuera
+        if len(detector_oferta_en_ingles.findall(contenido_pagina)) >= 2:
+          print(
+              f"❌ Descartada porque la descripción de la página está en inglés: {titulo}"
+          )
+          continue
+
         if patrones_excluyentes.search(texto_total):
           print(
-              f"❌ Descartada por filtro (Inglés C1 / Colegiación / Ingeniería TI): {titulo}"
+              f"❌ Descartada por filtro (Inglés Alto / Colegiación / Ingeniería TI): {titulo}"
           )
           continue
 
@@ -177,73 +198,75 @@ for q in queries:
         })
 
 print(
-    f"Se encontraron {len(ofertas_crudas)} candidatas para evaluar con Gemini."
+    f"Se encontraron {len(ofertas_crudas)} candidatas 100% en español para evaluar con Gemini."
 )
 if not ofertas_crudas:
   exit(0)
 
-# 3. Filtrar con Gemini explicando exactamente tu situación profesional
+# 3. Filtrar con Gemini con prohibición absoluta de ofertas en inglés
 prompt = (
     "Analiza la siguiente lista de vacantes de empleo:\n"
     f"{json.dumps(ofertas_crudas[:14], ensure_ascii=False, indent=2)}\n\n"
     "MI CV REAL COMPLETO (PROHIBIDO INVENTAR O BORRAR EMPRESAS, FECHAS O"
     " UNIVERSIDADES):\n"
     f"{CV_REAL_BARBARA}\n\n"
-    "REGLAS ESTRICTAS DE SELECCIÓN (PERFIL JURÍDICO VENEZOLANO CON CIUDADANÍA"
-    " UE Y MÁSTER ESPAÑOL EN LEGALTECH/CIBERSEGURIDAD):\n"
-    "1. QUÉ PUEDO EJERCER EN ESPAÑA: Soy abogada graduada en Venezuela con"
-    " Ciudadanía Europea y Máster en España. NO puedo ejercer como abogada"
-    " litigante/procesalista colegiada en tribunales españoles, PERO SÍ puedo"
-    " ejercer todos los cargos del área jurídica corporativa, normativa y"
-    " tecnológica que no exigen colegiación: Compliance Officer / Técnico de"
-    " Compliance, Prevención de Blanqueo (PBC/AML), Consultora RGPD /"
-    " Protección de Datos / DPO, Legal Operations (LegalOps), Gestora de"
-    " Contratos (Contract Manager SaaS/Mercantil), GRC Normativo (ISO 27001,"
-    " DORA, EU AI Act, MiCA), Asesora Jurídica In-house o Consultora LegalTech.\n"
-    "2. QUÉ DEBES DESCARTAR SIN EXCEPCIÓN:\n"
-    "   - Ofertas que exijan colegiación en España como abogado ejerciente,"
-    " ir a juzgados/tribunales (procesal) o título homologado MECES para"
-    " licitaciones públicas.\n"
-    "   - Ofertas para Ingenieros Informáticos o de Telecomunicaciones"
-    " (programación, redes, servidores, CISSP, ITIL, PMP).\n"
-    "   - Ofertas de Becario/Prácticas, contratos temporales o que exijan"
-    " Inglés C1/Fluido excluyente.\n"
-    "3. REGLA DE ORO PARA EL CV ATS: En 'experiencia_adaptada' DEBES INCLUIR"
-    " MIS EXPERIENCIAS REALES CON SUS NOMBRES DE EMPRESA Y FECHAS EXACTAS"
-    " (BIGTO.ONE hasta dic 2025, Consultora Independiente, Mystic Remodeling,"
-    " Inversiones Quadruvio, Casa de Cambio Zoom, Banesco/Bancrecer).\n\n"
+    "REGLAS ESTRICTAS E INQUEBRANTABLES DE SELECCIÓN:\n"
+    "1. IDIOMA ESPAÑOL OBLIGATORIO: Si el título de la oferta, el snippet o la"
+    " descripción del puesto están escritos en inglés, DESCÁRTALA"
+    " INMEDIATAMENTE SIN EXCEPCIÓN. Si pide nivel de inglés alto, avanzado,"
+    " fluido, C1 o imprescindible, DESCÁRTALA TAMBIÉN. Solo acepta ofertas"
+    " redactadas íntegramente en español.\n"
+    "2. QUÉ PUEDO EJERCER EN ESPAÑA (SIN COLEGIACIÓN): Soy abogada graduada en"
+    " Venezuela con Ciudadanía Europea y Máster español en LegalTech y"
+    " Ciberseguridad (2025). NO puedo ejercer como abogada litigante"
+    " colegiada en juzgados españoles, PERO SÍ todos los cargos del área"
+    " jurídica corporativa, normativa y tecnológica sin colegiación:"
+    " Cumplimiento Normativo (Compliance), Prevención de Blanqueo (PBC/AML),"
+    " Consultora RGPD / Protección de Datos / DPO, Operaciones Legales"
+    " (LegalOps), Gestora de Contratos (SaaS/Mercantil), GRC Normativo (ISO"
+    " 27001, DORA, Ley de IA, MiCA) o Consultora LegalTech.\n"
+    "3. QUÉ DESCARTAR: Descarta ofertas que exijan colegiación en España, ir a"
+    " juzgados, títulos de Ingeniería Informática/Telecomunicaciones,"
+    " certificaciones CISSP/ITIL/PMP, puestos de Becario o contratos"
+    " temporales.\n"
+    "4. REGLA DE ORO PARA EL CV ATS: Todo el CV debe estar en ESPAÑOL. En"
+    " 'experiencia_adaptada' DEBES INCLUIR MIS 6 EXPERIENCIAS REALES CON SUS"
+    " NOMBRES DE EMPRESA Y FECHAS EXACTAS (BIGTO.ONE hasta dic 2025,"
+    " Consultora Independiente, Mystic Remodeling, Inversiones Quadruvio, Casa"
+    " de Cambio Zoom, Banesco/Bancrecer).\n\n"
     "Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura:\n"
     "{\n"
     '  "ofertas_seleccionadas": [\n'
     "    {\n"
-    '      "empresa_o_rol": "Nombre del Puesto - Empresa",\n'
+    '      "empresa_o_rol": "Nombre del Puesto en Español - Empresa",\n'
     '      "modalidad": "Remoto / Híbrido en España / Presencial en España",\n'
-    '      "confirmacion_idioma": "Ej: Español (Rol jurídico/compliance sin'
-    ' requisito de colegiación ni inglés C1)",\n'
+    '      "confirmacion_idioma": "Confirmado: Oferta redactada en español sin'
+    ' requisito de inglés alto ni colegiación",\n'
     '      "link": "URL original de la vacante",\n'
     '      "asunto_correo": "Candidatura: [Nombre del Puesto] - Bárbara'
     ' Piccolo (Ciudadanía UE)",\n'
     '      "mensaje_postulacion": "Carta ejecutiva en español adaptada a la'
     " empresa y al puesto, destacando mis +12 años de experiencia en"
-    " Compliance, Gestión Contractual, Regulación Financiera/Tecnológica y"
-    " LegalOps, mi Máster español en LegalTech y Ciberseguridad (2025), mi"
-    " portafolio https://github.com/barbarapiccolo/cvlegal y mi Ciudadanía"
-    ' Europea para contratación inmediata",\n'
+    " Cumplimiento Normativo, Gestión Contractual, Regulación"
+    " Financiera/Tecnológica y Operaciones Legales, mi Máster español en"
+    " LegalTech y Ciberseguridad (2025), mi portafolio"
+    " https://github.com/barbarapiccolo/cvlegal y mi Ciudadanía Europea para"
+    ' contratación inmediata",\n'
     '      "cv_ats": {\n'
-    '        "titulo_adaptado": "Titular profesional adaptado al puesto'
-    ' (Ej: Especialista en Compliance, LegalOps y Regulación Digital |'
-    ' Ciudadana UE)",\n'
-    '        "resumen_ejecutivo": "Párrafo ejecutivo de 4 líneas adaptado a la'
-    ' vacante con mis +12 años de experiencia, Máster en LegalTech y'
-    ' Ciudadanía Europea",\n'
-    '        "competencias_ats": ["Keyword 1", "Keyword 2", "Keyword 3",'
-    ' "Keyword 4", "Keyword 5", "Keyword 6", "Keyword 7", "Keyword 8"],\n'
+    '        "titulo_adaptado": "Titular profesional en español adaptado al'
+    ' puesto (Incluir: Ciudadana de la UE)",\n'
+    '        "resumen_ejecutivo": "Párrafo ejecutivo de 4 líneas en español'
+    " adaptado a la vacante con mis +12 años de experiencia, Máster en"
+    ' LegalTech y Ciudadanía Europea",\n'
+    '        "competencias_ats": ["Cumplimiento Normativo", "RGPD", "Gestión de'
+    ' Riesgos", "Gobernanza de IA", "DORA", "ISO 27001", "Contratos'
+    ' Tecnológicos", "Prevención de Blanqueo"],\n'
     '        "experiencia_adaptada": [\n'
     "          {\n"
     '            "cargo_y_empresa": "BIGTO.ONE | Remoto - Especialista'
     ' Jurídico-Tecnológico (Julio 2025 - Diciembre 2025)",\n'
-    '            "logros": ["Logro 1 adaptado a las keywords de la vacante",'
-    ' "Logro 2 adaptado a las keywords de la vacante"]\n'
+    '            "logros": ["Logro 1 en español adaptado a la vacante", "Logro'
+    ' 2 en español adaptado a la vacante"]\n'
     "          }\n"
     "        ]\n"
     "      }\n"
@@ -478,8 +501,9 @@ for idx, of in enumerate(seleccionadas):
   link_mailto = f"mailto:?subject={asunto_encoded}&body={cuerpo_encoded}"
 
   cuerpo_issue = (
-      f"🔔 Hola @{USUARIO}, encontré una vacante del área jurídica/normativa"
-      " (sin requisito de colegiación) ideal para tu perfil con Ciudadanía UE:\n\n"
+      f"🔔 Hola @{USUARIO}, encontré una vacante 100% en español del área"
+      " jurídica/normativa (sin requisito de colegiación) ideal para tu perfil"
+      " con Ciudadanía UE:\n\n"
       f"### 🎯 Vacante Detectada\n**Puesto y Empresa:** {of.get('empresa_o_rol')}\n"
       f"🌍 **Modalidad:** {of.get('modalidad')}\n"
       f"✅ **Verificación:** {of.get('confirmacion_idioma', 'Español - Sin colegiación')}\n"
