@@ -73,7 +73,9 @@ except Exception:
 # 2. Búsqueda enfocada en puestos Senior/Mid en ESPAÑOL
 filtro_exclusiones = (
     '-"C1" -"C2" -"fluent English" -"inglés fluido" -"bilingüe" -"becario"'
-    ' -"becaria" -"prácticas" -"internship" -"Qualys" -"Pentester"'
+    ' -"becaria" -"prácticas" -"internship" -"Qualys" -"Pentester" -"CISSP"'
+    ' -"CISM" -"ITIL" -"Ingeniero" -"Ingeniería Informática" -"Telecomunicaciones"'
+    ' -"Administración Pública" -"temporal"'
 )
 
 queries = [
