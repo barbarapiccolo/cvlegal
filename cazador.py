@@ -1,5 +1,4 @@
 import base64
-import glob
 import json
 import os
 import re
@@ -19,11 +18,44 @@ USUARIO = os.environ.get("GITHUB_ACTOR")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# 1. Leer automáticamente el CV en tu repositorio cvlegal
-cv_base = ""
-for archivo in glob.glob("*.md") + glob.glob("*.html") + glob.glob("*.txt"):
-  with open(archivo, "r", encoding="utf-8", errors="ignore") as f:
-    cv_base += f"\n--- Contenido de {archivo} ---\n" + f.read()
+# 1. TU CV REAL COMPLETO INCRUSTADO (Para que Gemini nunca omita tus empresas ni fechas reales)
+CV_REAL_BARBARA = """
+NOMBRE: Bárbara Isabel Piccolo Obaldo
+CIUDADANÍA: Ciudadana de la Unión Europea (UE) - Permiso de trabajo inmediato en España y la UE sin necesidad de visado.
+CONTACTO: Email: barbaraipiccolo@gmail.com | Tel: +58-414-9065797 | LinkedIn: linkedin.com/in/barbara-piccolo-613705b6 | Portafolio: github.com/barbarapiccolo/cvlegal
+PERFIL: Abogada especialista en Cumplimiento Normativo (Compliance), Derecho Financiero, LegalTech y Ciberseguridad (+12 años de experiencia). Experta en regulación FinTech (MiCA, AML/PBC), Ley de IA de la UE (EU AI Act), resiliencia operativa digital (DORA), seguridad de la información (ISO 27001), RGPD y contratación tecnológica (SaaS, SLAs, DPAs).
+
+EXPERIENCIA PROFESIONAL REAL (MANTENER SIEMPRE EMPRESAS Y FECHAS):
+1. BIGTO.ONE | Remoto (España / Global) | Especialista Jurídico-Tecnológico (Consultora) | Julio 2025 - Presente
+- Consultora estratégico-tecnológica para venture builder global implementando el marco de cumplimiento y operaciones legales (LegalOps) para un portafolio de +8 startups tecnológicas en el mercado europeo.
+- Diagnósticos de cumplimiento en sectores de alta regulación: FinTech (MiCA, AML) e Inteligencia Artificial (EU AI Act), DORA e ISO 27001.
+- Diseño y estandarización de procesos y contratos tecnológicos (SaaS, SLAs, DPAs) aplicando Legal by Design y privacidad desde el diseño (RGPD).
+
+2. CONSULTORA INDEPENDIENTE | Italia - Venezuela (Remoto) | Asesora Legal y de Estrategia Digital | 2023 - Presente
+- Asesoría legal en derecho mercantil, cumplimiento normativo, protección de datos y redacción de contratos tecnológicos.
+- Optimización y automatización de procesos de contratación digital (CLM) y flujos de trabajo LegalTech.
+
+3. MYSTIC REMODELING LLC | Florida, EE.UU. | Gerente de Operaciones Digitales | Sept 2021 - Sept 2023
+- Gestión de operaciones digitales, implementación de herramientas tecnológicas de gestión de proyectos y automatización de procesos internos.
+- Supervisión de cumplimiento de normativas de privacidad y seguridad de datos en el mercado estadounidense.
+
+4. INVERSIONES QUADRUVIO | Caracas, Venezuela | Consultor Jurídico Senior | Ene 2015 - Nov 2019
+- Dirección integral del área legal y de cumplimiento corporativo (Compliance) para holding empresarial.
+- Redacción y negociación de contratos mercantiles, gobernanza corporativa (Asambleas de Accionistas y Juntas Directivas) y mitigación de riesgos regulatorios.
+
+5. CASA DE CAMBIO ZOOM | Caracas, Venezuela | Abogado Corporativo y de Cumplimiento | Mar 2012 - Jul 2015
+- Responsable del cumplimiento legal y normativo financiero y cambiario, reportando a Presidencia y Consultoría Jurídica.
+- Liderazgo en inspecciones de entes reguladores bancarios/financieros (SUDEBAN) y prevención de legitimación de capitales (AML / LOCDOFT).
+
+6. BANESCO BANCO UNIVERSAL & BANCRECER (BANCO DE VENEZUELA) | Caracas, Venezuela | Abogado Especialista en Créditos / Abogado | Ene 2007 - Jul 2010
+- Miembro fundador del equipo legal en el lanzamiento de Bancrecer y especialista en estructuración de contratos bancarios, créditos corporativos, garantías y cumplimiento normativo bancario.
+
+FORMACIÓN ACADÉMICA Y CERTIFICACIONES:
+- Máster en LegalTech y Derecho de la Ciberseguridad | Esneca Business School (2025) - Título con Apostilla de La Haya.
+- Licenciada en Derecho (Abogada) | Universidad Santa María (2005).
+- Habilidades y Herramientas: ISO 27001, DORA, EU AI Act, RGPD, MiCA, AML/LOCDOFT, VLEX, DocuSign, LegalSurf, Salesforce, Notion, GitHub, IA Generativa.
+- Idiomas: Español (Nativo), Italiano (Intermedio B1), Inglés (Intermedio B1).
+"""
 
 # 1.5 Obtener Issues ya creados para NO repetir ofertas
 links_existentes = set()
@@ -38,33 +70,33 @@ try:
 except Exception:
   pass
 
-# 2. Búsqueda enfocada en puestos en ESPAÑOL (RGPD, DPO, Compliance, LegalTech, Mercantil Tech)
-filtro_anti_ingles = '-"C1" -"C2" -"fluent English" -"inglés fluido" -"inglés muy alto" -"bilingüe"'
+# 2. Búsqueda enfocada en puestos Senior/Mid en ESPAÑOL (FinTech, Ciberseguridad Legal, RGPD, Compliance, LegalOps)
+filtro_exclusiones = (
+    '-"C1" -"C2" -"fluent English" -"inglés fluido" -"bilingüe" -"becario"'
+    ' -"becaria" -"prácticas" -"internship" -"Qualys" -"Pentester"'
+)
 
 queries = [
-    # 1. Puestos de Privacidad, RGPD, DPO y Compliance en España y Teletrabajo (100% mercado en español)
     (
-        '("Consultor RGPD" OR "Protección de Datos" OR "DPO" OR "Compliance" OR'
-        ' "Cumplimiento Normativo" OR "Derecho Digital") ("empleo" OR "oferta"'
-        ' OR "vacante" OR "trabaja con nosotros") ("Madrid" OR "Barcelona" OR'
-        ' "Valencia" OR "Teletrabajo" OR "Remoto" OR "España") -curso -master'
-        f" -blog {filtro_anti_ingles}"
+        '("Compliance" OR "Cumplimiento Normativo" OR "RGPD" OR "Protección de'
+        ' Datos" OR "DPO" OR "Ciberseguridad" OR "DORA" OR "Prevención de'
+        ' Blanqueo") ("Abogado" OR "Jurista" OR "Legal" OR "Consultor" OR'
+        ' "Especialista") ("Madrid" OR "Barcelona" OR "Teletrabajo" OR "Remoto"'
+        f' OR "España") ("oferta" OR "vacante" OR "empleo") -curso -master -blog {filtro_exclusiones}'
     ),
-    # 2. Portales de empleo españoles y remotos hispanos
     (
         '(site:infojobs.net OR site:es.indeed.com OR site:tecnoempleo.com OR'
         ' site:getonbrd.com/empleos OR site:welcometothejungle.com OR'
         ' site:factorialhr.es OR site:teamtailor.com) ("Abogado" OR "Jurista"'
-        ' OR "Legal" OR "RGPD" OR "Compliance") ("Inteligencia Artificial" OR'
-        ' "Tecnología" OR "Digital" OR "Automatización" OR "LegalTech" OR'
-        f' "Mercantil") {filtro_anti_ingles}'
+        ' OR "Legal" OR "RGPD" OR "Compliance" OR "FinTech") ("Inteligencia'
+        ' Artificial" OR "Tecnología" OR "Digital" OR "Ciberseguridad" OR'
+        f' "LegalTech" OR "Mercantil" OR "Bancario") {filtro_exclusiones}'
     ),
-    # 3. Operaciones Legales, Contratos SaaS y Consultoría Legal en español
     (
         '("Operaciones Legales" OR "Legal Operations" OR "LegalOps" OR "Gestor'
         ' de Contratos" OR "Abogado In-house" OR "Asesor Jurídico") ("Remoto"'
         ' OR "Teletrabajo" OR "Madrid" OR "Barcelona" OR "España") ("vacante"'
-        f' OR "oferta" OR "empleo") -curso -master -blog {filtro_anti_ingles}'
+        f' OR "oferta" OR "empleo") -curso -master -blog {filtro_exclusiones}'
     ),
 ]
 
@@ -92,9 +124,8 @@ def extraer_texto_completo_oferta(url):
   return ""
 
 
-# Solo bloquea si pide inglés C1/C2/Fluido/Indispensable explícitamente
-patrones_ingles_excluyente = re.compile(
-    r"(ingl[eé]s\s+(fluido|muy\s+alto|c1|c2|biling[uü]e|indispensable|imprescindible|excluyente)|nivel\s+(c1|c2|biling[uü]e)\s+de\s+ingl[eé]s|fluent\s+in\s+english|english\s+(c1|c2|fluent|native)|imprescindible\s+nivel\s+alto\s+de\s+ingl[eé]s)",
+patrones_excluyentes = re.compile(
+    r"(ingl[eé]s\s+(fluido|muy\s+alto|c1|c2|biling[uü]e|indispensable|imprescindible|excluyente)|nivel\s+(c1|c2|biling[uü]e)\s+de\s+ingl[eé]s|fluent\s+in\s+english|english\s+(c1|c2|fluent|native)|becario|becaria|convenio\s+de\s+pr[aá]cticas)",
     re.IGNORECASE,
 )
 
@@ -120,8 +151,8 @@ for q in queries:
         contenido_pagina = extraer_texto_completo_oferta(link)
         texto_total = f"{titulo} {snippet} {contenido_pagina}"
 
-        if patrones_ingles_excluyente.search(texto_total):
-          print(f"❌ Descartada por exigir inglés C1/Fluido: {titulo}")
+        if patrones_excluyentes.search(texto_total):
+          print(f"❌ Descartada por filtro (Inglés C1 o Becario): {titulo}")
           continue
 
         ofertas_crudas.append({
@@ -139,62 +170,61 @@ print(
 if not ofertas_crudas:
   exit(0)
 
-# 3. Filtrar con Gemini con criterio inteligente y equilibrado
+# 3. Filtrar con Gemini obligándolo a respetar tus empresas, fechas y formación reales
 prompt = (
-    "Analiza la siguiente lista de resultados de búsqueda de empleo:\n"
-    f"{json.dumps(ofertas_crudas[:15], ensure_ascii=False, indent=2)}\n\n"
-    "Mi perfil base (Bárbara Piccolo, Abogada con CIUDADANÍA EUROPEA /"
-    " Pasaporte UE, especialista en Derecho Corporativo, RGPD/Privacidad,"
-    " Compliance, Gobernanza de IA y LegalOps):\n"
-    f"{cv_base[:4500]}\n\n"
-    "CRITERIOS DE SELECCIÓN:\n"
-    "1. TIENE QUE SER UNA OFERTA DE EMPLEO O PÁGINA DE VACANTES REALES:"
-    " Descarta cursos, másteres, noticias o artículos de blog.\n"
-    "2. CRITERIO DE IDIOMA (EQUILIBRADO): Descarta la oferta SOLO si está"
-    " redactada íntegramente en inglés o si exige 'Inglés C1 / Fluido /"
-    " Imprescindible / Excluyente'. Si la oferta está en español y NO menciona"
-    " inglés, o solo dice 'inglés valorable / deseable / básico / medio' (o si"
-    " solo hay botones de la web en inglés), ¡ACÉPTALA!\n"
-    "3. UBICACIÓN Y PERFIL: Tengo Ciudadanía Europea. Acepta ofertas Remotas /"
-    " Teletrabajo Y TAMBIÉN ofertas presenciales o híbridas en España (Madrid,"
-    " Barcelona, Valencia, etc.) en áreas de: RGPD/Protección de Datos,"
-    " Compliance, LegalTech, IA, Contratos Mercantiles, Asesoría Jurídica"
-    " Corporativa o LegalOps. (Solo descarta si exige ser abogado procesalista"
-    " litigando en juzgados españoles).\n"
-    "4. Para cada oferta aprobada, genera mi CV COMPLETO optimizado para ATS"
-    " en español destacando mi Ciudadanía Europea.\n\n"
+    "Analiza la siguiente lista de vacantes de empleo:\n"
+    f"{json.dumps(ofertas_crudas[:14], ensure_ascii=False, indent=2)}\n\n"
+    "MI CV REAL COMPLETO (PROHIBIDO INVENTAR O BORRAR EMPRESAS, FECHAS O"
+    " UNIVERSIDADES):\n"
+    f"{CV_REAL_BARBARA}\n\n"
+    "REGLAS ESTRICTAS DE SELECCIÓN Y REDACCIÓN DE CV ATS:\n"
+    "1. SOLO OFERTAS REALES ACORDES A MI NIVEL (+12 años exp): Descarta"
+    " puestos de Becario/Prácticas, cursos, blogs o puestos de ingeniería"
+    " informática pura de sistemas/redes (como administradores de servidores)."
+    " Prioriza Compliance, RGPD/DPO, Riesgo Tecnológico/IA/Ciberseguridad"
+    " (DORA/ISO 27001), FinTech/Banca (MiCA/AML), LegalOps y Asesoría"
+    " Jurídica.\n"
+    "2. IDIOMA: Descarta si está toda en inglés o exige Inglés"
+    " C1/Fluido/Excluyente. Acepta ofertas en español (incluso si dice inglés"
+    " valorable o B1/B2).\n"
+    "3. REGLA DE ORO PARA EL CV ATS: En 'experiencia_adaptada' DEBES INCLUIR"
+    " MIS 5 O 6 EXPERIENCIAS REALES CON SUS NOMBRES DE EMPRESA, UBICACIÓN Y"
+    " FECHAS EXACTAS (BIGTO.ONE, Consultora Independiente, Mystic Remodeling"
+    " LLC, Inversiones Quadruvio, Casa de Cambio Zoom, Banesco/Bancrecer). No"
+    " las borres ni las resumas en una sola. Dentro de cada empresa, redacta 2"
+    " o 3 logros potentes conectando lo que hice allí con las palabras clave"
+    " que busca esta vacante.\n\n"
     "Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura:\n"
     "{\n"
-    '  "resumen_descartes": ["Breve línea de por qué descartaste las que no'
-    ' elegiste"],\n'
     '  "ofertas_seleccionadas": [\n'
     "    {\n"
     '      "empresa_o_rol": "Nombre del Puesto - Empresa",\n'
     '      "modalidad": "Remoto / Híbrido en España / Presencial en España",\n'
-    '      "confirmacion_idioma": "Ej: Oferta 100% en español (sin requisito'
-    ' excluyente de inglés)",\n'
+    '      "confirmacion_idioma": "Ej: Español (sin requisito de inglés C1)",\n'
     '      "link": "URL original de la vacante",\n'
     '      "asunto_correo": "Candidatura: [Nombre del Puesto] - Bárbara'
     ' Piccolo (Ciudadanía UE)",\n'
-    '      "mensaje_postulacion": "Carta corta y persuasiva en español'
-    " destacando mi encaje en el puesto, mi portafolio"
-    ' https://github.com/barbarapiccolo/cvlegal y mi Ciudadanía Europea",\n'
+    '      "mensaje_postulacion": "Carta ejecutiva en español destacando mis'
+    " +12 años de experiencia en Compliance/Banca/LegalTech, mi Máster en"
+    " Ciberseguridad y LegalTech (2025) y mi Ciudadanía Europea para"
+    ' incorporación inmediata",\n'
     '      "cv_ats": {\n'
-    '        "titulo_adaptado": "Titular profesional con las keywords exactas'
-    ' del puesto",\n'
-    '        "resumen_ejecutivo": "Párrafo potente de 4 líneas alineado 100% a'
-    ' la vacante, mencionando Ciudadanía Europea",\n'
+    '        "titulo_adaptado": "Titular profesional alineado a la vacante'
+    ' (Incluir: Ciudadana de la UE)",\n'
+    '        "resumen_ejecutivo": "Párrafo ejecutivo de 4 líneas destacando'
+    " mis +12 años de experiencia, Máster en LegalTech y Ciberseguridad,"
+    " experiencia en BIGTO.ONE / Banca y Ciudadanía Europea adaptados al"
+    ' puesto",\n'
     '        "competencias_ats": ["Keyword 1", "Keyword 2", "Keyword 3",'
-    ' "Keyword 4", "Keyword 5", "Keyword 6"],\n'
+    ' "Keyword 4", "Keyword 5", "Keyword 6", "Keyword 7", "Keyword 8"],\n'
     '        "experiencia_adaptada": [\n'
     "          {\n"
-    '            "cargo_y_empresa": "Cargo y proyecto/empresa real de mi CV",\n'
-    '            "logros": ["Logro 1 reescrito con keywords de la oferta",'
-    ' "Logro 2 reescrito con keywords de la oferta"]\n'
+    '            "cargo_y_empresa": "BIGTO.ONE | Remoto (España / Global) -'
+    ' Especialista Jurídico-Tecnológico (Julio 2025 - Presente)",\n'
+    '            "logros": ["Logro detallado 1 adaptado a la oferta", "Logro'
+    ' detallado 2 adaptado a la oferta"]\n'
     "          }\n"
-    "        ],\n"
-    '        "educacion_y_certificaciones": ["Título / Certificación relevante'
-    ' 1", "Título / Certificación 2"]\n'
+    "        ]\n"
     "      }\n"
     "    }\n"
     "  ]\n"
@@ -229,9 +259,7 @@ for modelo_actual in modelos_ordenados[:6]:
         ),
     )
     resultado = json.loads(respuesta.text)
-    print(f"✅ ¡Análisis completado con {modelo_actual}!")
-    for motivo in resultado.get("resumen_descartes", []):
-      print(f"   ℹ️ Descarte IA: {motivo}")
+    print(f"✅ ¡Análisis y CV Senior completados con {modelo_actual}!")
     break
   except Exception as e:
     print(f"⚠️ {modelo_actual} ocupado ({e}). Saltando...")
@@ -254,7 +282,6 @@ def limpiar_texto(t):
   }
   for k, v in reemplazos.items():
     t = t.replace(k, v)
-  t = re.sub(r"(\S{45})(\S+)", r"\1 \2", t)
   return t.encode("latin-1", "ignore").decode("latin-1")
 
 
@@ -263,116 +290,152 @@ def escribir_parrafo(pdf, texto, alto=5):
   if not texto_limpio:
     return
   pdf.set_x(pdf.l_margin)
+  # wrapmode="WORD" evita que las palabras se corten a la mitad como "ries-gos"
   pdf.multi_cell(
       0,
       alto,
       texto_limpio,
       new_x="LMARGIN",
       new_y="NEXT",
-      wrapmode="CHAR",
+      wrapmode="WORD",
   )
 
 
 def crear_pdf_ats(cv_data, ruta_archivo):
   pdf = FPDF()
-  pdf.set_margins(15, 15, 15)
-  pdf.set_auto_page_break(auto=True, margin=15)
+  pdf.set_margins(14, 14, 14)
+  pdf.set_auto_page_break(auto=True, margin=14)
   pdf.add_page()
 
-  pdf.set_font("Helvetica", "B", 17)
-  escribir_parrafo(pdf, "BARBARA ISABEL PICCOLO OBALDO", 8)
+  # Encabezado con todos tus datos reales de contacto
+  pdf.set_font("Helvetica", "B", 16)
+  escribir_parrafo(pdf, "BARBARA ISABEL PICCOLO OBALDO", 7)
 
-  pdf.set_font("Helvetica", "B", 11)
-  pdf.set_text_color(40, 80, 140)
+  pdf.set_font("Helvetica", "B", 10.5)
+  pdf.set_text_color(30, 70, 130)
   escribir_parrafo(
-      pdf, cv_data.get("titulo_adaptado", "Especialista en LegalOps, IA y RGPD"), 6
+      pdf,
+      cv_data.get(
+          "titulo_adaptado",
+          "Abogada Especialista en Compliance, LegalTech, FinTech y"
+          " Ciberseguridad | Ciudadana de la UE",
+      ),
+      5.5,
   )
 
   pdf.set_font("Helvetica", "B", 9)
   pdf.set_text_color(0, 110, 60)
   escribir_parrafo(
       pdf,
-      "CIUDADANIA EUROPEA (UE) - Permiso de trabajo inmediato en España y UE"
+      "CIUDADANIA EUROPEA (UE) - Permiso de trabajo inmediato en España y la UE"
       " (Sin necesidad de visado)",
-      6,
-  )
-
-  pdf.set_font("Helvetica", "", 9)
-  pdf.set_text_color(80, 80, 80)
-  escribir_parrafo(
-      pdf,
-      "Portafolio Web & GitHub: github.com/barbarapiccolo/cvlegal | Modalidad:"
-      " Remoto / Traslado a España",
       5,
   )
-  pdf.ln(3)
 
-  pdf.set_font("Helvetica", "B", 11)
+  pdf.set_font("Helvetica", "", 8.5)
+  pdf.set_text_color(60, 60, 60)
+  escribir_parrafo(
+      pdf,
+      "Email: barbaraipiccolo@gmail.com | Tel: +58-414-9065797 | LinkedIn:"
+      " linkedin.com/in/barbara-piccolo-613705b6 | GitHub:"
+      " github.com/barbarapiccolo/cvlegal",
+      4.5,
+  )
+  pdf.ln(2)
+
+  # Perfil Profesional
+  pdf.set_font("Helvetica", "B", 10.5)
   pdf.set_text_color(0, 0, 0)
   pdf.cell(
       0,
-      7,
+      6,
       "PERFIL PROFESIONAL",
       border="B",
       new_x="LMARGIN",
       new_y="NEXT",
   )
-  pdf.ln(2)
-  pdf.set_font("Helvetica", "", 10)
-  escribir_parrafo(pdf, cv_data.get("resumen_ejecutivo", ""), 5)
-  pdf.ln(4)
+  pdf.ln(1.5)
+  pdf.set_font("Helvetica", "", 9.5)
+  escribir_parrafo(pdf, cv_data.get("resumen_ejecutivo", ""), 4.8)
+  pdf.ln(3)
 
-  pdf.set_font("Helvetica", "B", 11)
+  # Competencias Clave ATS
+  pdf.set_font("Helvetica", "B", 10.5)
   pdf.cell(
       0,
-      7,
-      "COMPETENCIAS CLAVE Y TECNOLOGIAS (ATS KEYWORDS)",
+      6,
+      "COMPETENCIAS CLAVE Y MARCOS REGULATORIOS (ATS KEYWORDS)",
       border="B",
       new_x="LMARGIN",
       new_y="NEXT",
   )
-  pdf.ln(2)
-  pdf.set_font("Helvetica", "", 10)
+  pdf.ln(1.5)
+  pdf.set_font("Helvetica", "", 9.5)
   skills = " | ".join(cv_data.get("competencias_ats", []))
-  escribir_parrafo(pdf, skills, 5)
-  pdf.ln(4)
+  escribir_parrafo(pdf, skills, 4.8)
+  pdf.ln(3)
 
-  pdf.set_font("Helvetica", "B", 11)
+  # Experiencia Profesional Real Adaptada
+  pdf.set_font("Helvetica", "B", 10.5)
   pdf.cell(
       0,
-      7,
-      "EXPERIENCIA RELEVANTE Y PROYECTOS LEGALTECH",
+      6,
+      "EXPERIENCIA PROFESIONAL",
       border="B",
       new_x="LMARGIN",
       new_y="NEXT",
   )
-  pdf.ln(2)
+  pdf.ln(1.5)
   for exp in cv_data.get("experiencia_adaptada", []):
-    pdf.set_font("Helvetica", "B", 10)
-    escribir_parrafo(pdf, exp.get("cargo_y_empresa", ""), 6)
-    pdf.set_font("Helvetica", "", 10)
+    pdf.set_font("Helvetica", "B", 9.5)
+    escribir_parrafo(pdf, exp.get("cargo_y_empresa", ""), 5)
+    pdf.set_font("Helvetica", "", 9.5)
     for logro in exp.get("logros", []):
-      escribir_parrafo(pdf, f"- {logro}", 5)
+      escribir_parrafo(pdf, f"- {logro}", 4.6)
     pdf.ln(2)
 
-  pdf.set_font("Helvetica", "B", 11)
+  # Formación Académica Real Fija (Nunca más inventada ni omitida)
+  pdf.set_font("Helvetica", "B", 10.5)
   pdf.cell(
       0,
-      7,
+      6,
       "FORMACION ACADEMICA Y CERTIFICACIONES",
       border="B",
       new_x="LMARGIN",
       new_y="NEXT",
   )
-  pdf.ln(2)
-  pdf.set_font("Helvetica", "", 10)
-  for edu in cv_data.get("educacion_y_certificaciones", []):
-    escribir_parrafo(pdf, f"- {edu}", 5)
+  pdf.ln(1.5)
+  pdf.set_font("Helvetica", "B", 9.5)
+  escribir_parrafo(
+      pdf,
+      "- Master en LegalTech y Derecho de la Ciberseguridad | Esneca Business"
+      " School (2025) - Titulo con Apostilla de La Haya.",
+      4.8,
+  )
+  escribir_parrafo(
+      pdf,
+      "- Licenciada en Derecho (Abogada) | Universidad Santa Maria (2005).",
+      4.8,
+  )
+  pdf.set_font("Helvetica", "", 9.5)
+  escribir_parrafo(
+      pdf,
+      "- Certificaciones y Herramientas: ISO 27001, DORA, EU AI Act, MiCA,"
+      " RGPD, Prevencion de Blanqueo de Capitales (AML), VLEX, DocuSign,"
+      " LegalSurf, Salesforce, Notion, GitHub.",
+      4.8,
+  )
+  escribir_parrafo(
+      pdf,
+      "- Idiomas: Español (Nativo), Italiano (Intermedio B1), Ingles"
+      " (Intermedio B1).",
+      4.8,
+  )
 
   pdf.output(ruta_archivo)
 
 
-# 4. Generar el PDF para cada vacante aprobada
+# 4. Generar PDFs y crear Issues
 seleccionadas = resultado.get("ofertas_seleccionadas", [])
 print(f"Procesando {len(seleccionadas)} vacantes aprobadas...")
 
@@ -396,7 +459,7 @@ for idx, of in enumerate(seleccionadas):
       },
       json={
           "message": (
-              f"CV adaptado automáticamente para {of.get('empresa_o_rol')}"
+              f"CV Senior adaptado automáticamente para {of.get('empresa_o_rol')}"
           ),
           "content": contenido_b64,
       },
@@ -408,14 +471,14 @@ for idx, of in enumerate(seleccionadas):
   link_mailto = f"mailto:?subject={asunto_encoded}&body={cuerpo_encoded}"
 
   cuerpo_issue = (
-      f"🔔 Hola @{USUARIO}, encontré una vacante en español ideal para tu"
-      " perfil con Ciudadanía UE:\n\n### 🎯 Vacante Detectada\n**Puesto y"
+      f"🔔 Hola @{USUARIO}, encontré una vacante Senior en español ideal para"
+      " tu perfil con Ciudadanía UE:\n\n### 🎯 Vacante Detectada\n**Puesto y"
       f" Empresa:** {of.get('empresa_o_rol')}\n🌍 **Modalidad:**"
       f" {of.get('modalidad')}\n✅ **Idioma:**"
       f" {of.get('confirmacion_idioma', 'Español')}\n🔗 **[1. Ir al Portal de"
-      f" la Oferta para Postular]({of.get('link')})**\n\n---\n\n### 📄 Tu CV en"
-      " PDF Adaptado a esta Oferta (Anti-ATS + Ciudadanía UE)\n👉 **[2. 📥 TOCA"
-      " AQUÍ PARA DESCARGAR TU CV EN PDF"
+      f" la Oferta para Postular]({of.get('link')})**\n\n---\n\n### 📄 Tu CV"
+      " Senior Completo en PDF Adaptado (Anti-ATS + Ciudadanía UE)\n👉 **[2. 📥"
+      " TOCA AQUÍ PARA DESCARGAR TU CV EN PDF"
       f" ADAPTADO]({url_descarga_pdf})**\n\n---\n\n### ✉️ Mensaje / Carta de"
       " Presentación para Pegar en el Portal\n> **Asunto sugerido:**"
       f" {of.get('asunto_correo')}\n\n```text\n"
@@ -423,7 +486,7 @@ for idx, of in enumerate(seleccionadas):
       " este texto directo en tu Correo]({link_mailto})**"
   )
 
-  res_issue = requests.post(
+  requests.post(
       f"https://api.github.com/repos/{REPO}/issues",
       headers={
           "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -438,4 +501,4 @@ for idx, of in enumerate(seleccionadas):
           "assignees": [USUARIO],
       },
   )
-  print(f"✅ Issue y PDF creados para: {of.get('empresa_o_rol')}")
+  print(f"✅ Issue y PDF Senior creados para: {of.get('empresa_o_rol')}")
