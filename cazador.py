@@ -18,7 +18,7 @@ USUARIO = os.environ.get("GITHUB_ACTOR")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# 1. TU CV REAL COMPLETO INCRUSTADO (Con fecha de Bigto.one hasta Diciembre 2025)
+# 1. TU CV REAL COMPLETO INCRUSTADO
 CV_REAL_BARBARA = """
 NOMBRE: Bárbara Isabel Piccolo Obaldo
 CIUDADANÍA: Ciudadana de la Unión Europea (UE) - Permiso de trabajo inmediato en España y la UE sin necesidad de visado.
@@ -202,16 +202,16 @@ prompt = (
     " Expert en Madrid. Cuento con Ciudadanía Europea y un perfil jurídico"
     " altamente especializado en regulación tecnológica, gobernanza de IA,"
     " ciberseguridad y gestión de riesgos regulatorios. Puede consultar mi"
-    " portafolio completo en https://github.direc/barbarapiccolo/cvlegal."
+    " portafolio completo en https://github.com/barbarapiccolo/cvlegal."
     ' Atentamente, Bárbara Piccolo.",\n'
     '      "cv_ats": {\n'
     '        "titulo_adaptado": "Abogada Especialista en Ciberseguridad y'
     ' Gobernanza de IA | Ciudadana de la UE",\n'
     '        "resumen_ejecutivo": "Abogada especialista en regulación'
-    " tecnológica, gobernanza de Inteligencia Artificial (EU AI Act) y gestión"
-    " de riesgos cibernéticos. Con Ciudadanía Europea, aporto una sólida"
-    " visión estratégica para alinear la innovación tecnológica con las"
-    " expectativas regulatorias.",\n'
+    " tecnológica, gobernanza de Inteligencia Artificial y gestión de"
+    " riesgos cibernéticos. Con Ciudadanía Europea, aporto una sólida visión"
+    " estratégica para alinear la innovación tecnológica con las"
+    ' expectativas regulatorias.",\n'
     '        "competencias_ats": ["AI Risk Governance", "Cyber Risk Management",'
     ' "Regulatory Compliance", "EU AI Act", "Security Governance", "Legal Risk'
     ' Assessment", "DORA", "ISO 27001"],\n'
