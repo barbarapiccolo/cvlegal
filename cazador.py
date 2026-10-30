@@ -18,14 +18,14 @@ USUARIO = os.environ.get("GITHUB_ACTOR")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# 1. TU CV REAL COMPLETO INCRUSTADO (Para que Gemini nunca omita tus empresas ni fechas reales)
+# 1. TU CV REAL COMPLETO INCRUSTADO (Con fecha de Bigto.one hasta Diciembre 2025)
 CV_REAL_BARBARA = """
 NOMBRE: Bárbara Isabel Piccolo Obaldo
 CIUDADANÍA: Ciudadana de la Unión Europea (UE) - Permiso de trabajo inmediato en España y la UE sin necesidad de visado.
 CONTACTO: Email: barbaraipiccolo@gmail.com | Tel: +58-414-9065797 | LinkedIn: linkedin.com/in/barbara-piccolo-613705b6 | Portafolio: github.com/barbarapiccolo/cvlegal
 PERFIL: Abogada especialista en Cumplimiento Normativo (Compliance), Derecho Financiero, LegalTech y Ciberseguridad (+12 años de experiencia). Experta en regulación FinTech (MiCA, AML/PBC), Ley de IA de la UE (EU AI Act), resiliencia operativa digital (DORA), seguridad de la información (ISO 27001), RGPD y contratación tecnológica (SaaS, SLAs, DPAs).
 
-EXPERIENCIA PROFESIONAL REAL (MANTENER SIEMPRE EMPRESAS Y FECHAS):
+EXPERIENCIA PROFESIONAL REAL:
 1. BIGTO.ONE | Remoto (España / Global) | Especialista Jurídico-Tecnológico (Consultora) | Julio 2025 - Diciembre 2025
 - Consultora estratégico-tecnológica para venture builder global implementando el marco de cumplimiento y operaciones legales (LegalOps) para un portafolio de +8 startups tecnológicas en el mercado europeo.
 - Diagnósticos de cumplimiento en sectores de alta regulación: FinTech (MiCA, AML) e Inteligencia Artificial (EU AI Act), DORA e ISO 27001.
@@ -47,13 +47,13 @@ EXPERIENCIA PROFESIONAL REAL (MANTENER SIEMPRE EMPRESAS Y FECHAS):
 - Responsable del cumplimiento legal y normativo financiero y cambiario, reportando a Presidencia y Consultoría Jurídica.
 - Liderazgo en inspecciones de entes reguladores bancarios/financieros (SUDEBAN) y prevención de legitimación de capitales (AML / LOCDOFT).
 
-6. BANESCO BANCO UNIVERSAL & BANCRECER (BANCO DE VENEZUELA) | Caracas, Venezuela | Abogado Especialista en Créditos / Abogado | Ene 2007 - Jul 2010
+6. BANESCO BANCO UNIVERSAL & BANCRECER | Caracas, Venezuela | Abogado Especialista en Créditos / Abogado | Ene 2007 - Jul 2010
 - Miembro fundador del equipo legal en el lanzamiento de Bancrecer y especialista en estructuración de contratos bancarios, créditos corporativos, garantías y cumplimiento normativo bancario.
 
 FORMACIÓN ACADÉMICA Y CERTIFICACIONES:
 - Máster en LegalTech y Derecho de la Ciberseguridad | Esneca Business School (2025) - Título con Apostilla de La Haya.
 - Licenciada en Derecho (Abogada) | Universidad Santa María (2005).
-- Habilidades y Herramientas: ISO 27001, DORA, EU AI Act, RGPD, MiCA, AML/LOCDOFT, VLEX, DocuSign, LegalSurf, Salesforce, Notion, GitHub, IA Generativa.
+- Certificaciones y Herramientas: ISO 27001, DORA, EU AI Act, MiCA, RGPD, Prevención de Blanqueo de Capitales (AML), VLEX, DocuSign, LegalSurf, Salesforce, Notion, GitHub.
 - Idiomas: Español (Nativo), Italiano (Intermedio B1), Inglés (Intermedio B1).
 """
 
@@ -70,7 +70,7 @@ try:
 except Exception:
   pass
 
-# 2. Búsqueda enfocada en puestos Senior/Mid en ESPAÑOL (FinTech, Ciberseguridad Legal, RGPD, Compliance, LegalOps)
+# 2. Búsqueda enfocada en puestos Senior/Mid en ESPAÑOL
 filtro_exclusiones = (
     '-"C1" -"C2" -"fluent English" -"inglés fluido" -"bilingüe" -"becario"'
     ' -"becaria" -"prácticas" -"internship" -"Qualys" -"Pentester"'
@@ -170,7 +170,7 @@ print(
 if not ofertas_crudas:
   exit(0)
 
-# 3. Filtrar con Gemini obligándolo a respetar tus empresas, fechas y formación reales
+# 3. Filtrar con Gemini
 prompt = (
     "Analiza la siguiente lista de vacantes de empleo:\n"
     f"{json.dumps(ofertas_crudas[:14], ensure_ascii=False, indent=2)}\n\n"
@@ -180,20 +180,13 @@ prompt = (
     "REGLAS ESTRICTAS DE SELECCIÓN Y REDACCIÓN DE CV ATS:\n"
     "1. SOLO OFERTAS REALES ACORDES A MI NIVEL (+12 años exp): Descarta"
     " puestos de Becario/Prácticas, cursos, blogs o puestos de ingeniería"
-    " informática pura de sistemas/redes (como administradores de servidores)."
-    " Prioriza Compliance, RGPD/DPO, Riesgo Tecnológico/IA/Ciberseguridad"
-    " (DORA/ISO 27001), FinTech/Banca (MiCA/AML), LegalOps y Asesoría"
-    " Jurídica.\n"
+    " informática pura.\n"
     "2. IDIOMA: Descarta si está toda en inglés o exige Inglés"
-    " C1/Fluido/Excluyente. Acepta ofertas en español (incluso si dice inglés"
-    " valorable o B1/B2).\n"
+    " C1/Fluido/Excluyente. Acepta ofertas en español.\n"
     "3. REGLA DE ORO PARA EL CV ATS: En 'experiencia_adaptada' DEBES INCLUIR"
-    " MIS 5 O 6 EXPERIENCIAS REALES CON SUS NOMBRES DE EMPRESA, UBICACIÓN Y"
-    " FECHAS EXACTAS (BIGTO.ONE, Consultora Independiente, Mystic Remodeling"
-    " LLC, Inversiones Quadruvio, Casa de Cambio Zoom, Banesco/Bancrecer). No"
-    " las borres ni las resumas en una sola. Dentro de cada empresa, redacta 2"
-    " o 3 logros potentes conectando lo que hice allí con las palabras clave"
-    " que busca esta vacante.\n\n"
+    " MIS EXPERIENCIAS REALES CON SUS NOMBRES DE EMPRESA Y FECHAS EXACTAS"
+    " (BIGTO.ONE hasta dic 2025, Consultora Independiente, Mystic Remodeling,"
+    " Inversiones Quadruvio, Casa de Cambio Zoom, Banesco/Bancrecer).\n\n"
     "Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura:\n"
     "{\n"
     '  "ofertas_seleccionadas": [\n'
@@ -204,25 +197,32 @@ prompt = (
     '      "link": "URL original de la vacante",\n'
     '      "asunto_correo": "Candidatura: [Nombre del Puesto] - Bárbara'
     ' Piccolo (Ciudadanía UE)",\n'
-    '      "mensaje_postulacion": "Carta ejecutiva en español destacando mis'
-    " +12 años de experiencia en Compliance/Banca/LegalTech, mi Máster en"
-    " Ciberseguridad y LegalTech (2025) y mi Ciudadanía Europea para"
-    ' incorporación inmediata",\n'
+    '      "mensaje_postulacion": "Estimado equipo de atracción de talento de'
+    " ING, presento mi candidatura para el puesto de Cyber Risk / AI Risk"
+    " Expert en Madrid. Cuento con Ciudadanía Europea y un perfil jurídico"
+    " altamente especializado en regulación tecnológica, gobernanza de IA,"
+    " ciberseguridad y gestión de riesgos regulatorios. Puede consultar mi"
+    " portafolio completo en https://github.direc/barbarapiccolo/cvlegal."
+    ' Atentamente, Bárbara Piccolo.",\n'
     '      "cv_ats": {\n'
-    '        "titulo_adaptado": "Titular profesional alineado a la vacante'
-    ' (Incluir: Ciudadana de la UE)",\n'
-    '        "resumen_ejecutivo": "Párrafo ejecutivo de 4 líneas destacando'
-    " mis +12 años de experiencia, Máster en LegalTech y Ciberseguridad,"
-    " experiencia en BIGTO.ONE / Banca y Ciudadanía Europea adaptados al"
-    ' puesto",\n'
-    '        "competencias_ats": ["Keyword 1", "Keyword 2", "Keyword 3",'
-    ' "Keyword 4", "Keyword 5", "Keyword 6", "Keyword 7", "Keyword 8"],\n'
+    '        "titulo_adaptado": "Abogada Especialista en Ciberseguridad y'
+    ' Gobernanza de IA | Ciudadana de la UE",\n'
+    '        "resumen_ejecutivo": "Abogada especialista en regulación'
+    " tecnológica, gobernanza de Inteligencia Artificial (EU AI Act) y gestión"
+    " de riesgos cibernéticos. Con Ciudadanía Europea, aporto una sólida"
+    " visión estratégica para alinear la innovación tecnológica con las"
+    " expectativas regulatorias.",\n'
+    '        "competencias_ats": ["AI Risk Governance", "Cyber Risk Management",'
+    ' "Regulatory Compliance", "EU AI Act", "Security Governance", "Legal Risk'
+    ' Assessment", "DORA", "ISO 27001"],\n'
     '        "experiencia_adaptada": [\n'
     "          {\n"
-    '            "cargo_y_empresa": "BIGTO.ONE | Remoto (España / Global) -'
-    ' Especialista Jurídico-Tecnológico (Julio 2025 - Presente)",\n'
-    '            "logros": ["Logro detallado 1 adaptado a la oferta", "Logro'
-    ' detallado 2 adaptado a la oferta"]\n'
+    '            "cargo_y_empresa": "BIGTO.ONE | Remoto - Especialista'
+    ' Jurídico-Tecnológico (Julio 2025 - Diciembre 2025)",\n'
+    '            "logros": ["Asesoramiento estratégico en la adopción segura'
+    ' de tecnologías emergentes e Inteligencia Artificial bajo marcos'
+    ' regulatorios europeos.", "Gestión de registros de riesgos tecnológicos y'
+    ' enlace con equipos de Compliance."]\n'
     "          }\n"
     "        ]\n"
     "      }\n"
@@ -290,7 +290,6 @@ def escribir_parrafo(pdf, texto, alto=5):
   if not texto_limpio:
     return
   pdf.set_x(pdf.l_margin)
-  # wrapmode="WORD" evita que las palabras se corten a la mitad como "ries-gos"
   pdf.multi_cell(
       0,
       alto,
@@ -307,21 +306,12 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   pdf.set_auto_page_break(auto=True, margin=14)
   pdf.add_page()
 
-  # Encabezado con todos tus datos reales de contacto
   pdf.set_font("Helvetica", "B", 16)
   escribir_parrafo(pdf, "BARBARA ISABEL PICCOLO OBALDO", 7)
 
   pdf.set_font("Helvetica", "B", 10.5)
   pdf.set_text_color(30, 70, 130)
-  escribir_parrafo(
-      pdf,
-      cv_data.get(
-          "titulo_adaptado",
-          "Abogada Especialista en Compliance, LegalTech, FinTech y"
-          " Ciberseguridad | Ciudadana de la UE",
-      ),
-      5.5,
-  )
+  escribir_parrafo(pdf, cv_data.get("titulo_adaptado", ""), 5.5)
 
   pdf.set_font("Helvetica", "B", 9)
   pdf.set_text_color(0, 110, 60)
@@ -337,13 +327,12 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   escribir_parrafo(
       pdf,
       "Email: barbaraipiccolo@gmail.com | Tel: +58-414-9065797 | LinkedIn:"
-      " linkedin.com/in/barbara-piccolo-613705b6 | GitHub:"
+      " linkedin.com/in/barbara-piccolo-613705b6 | Portafolio:"
       " github.com/barbarapiccolo/cvlegal",
       4.5,
   )
   pdf.ln(2)
 
-  # Perfil Profesional
   pdf.set_font("Helvetica", "B", 10.5)
   pdf.set_text_color(0, 0, 0)
   pdf.cell(
@@ -359,7 +348,6 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   escribir_parrafo(pdf, cv_data.get("resumen_ejecutivo", ""), 4.8)
   pdf.ln(3)
 
-  # Competencias Clave ATS
   pdf.set_font("Helvetica", "B", 10.5)
   pdf.cell(
       0,
@@ -375,7 +363,6 @@ def crear_pdf_ats(cv_data, ruta_archivo):
   escribir_parrafo(pdf, skills, 4.8)
   pdf.ln(3)
 
-  # Experiencia Profesional Real Adaptada
   pdf.set_font("Helvetica", "B", 10.5)
   pdf.cell(
       0,
@@ -394,7 +381,6 @@ def crear_pdf_ats(cv_data, ruta_archivo):
       escribir_parrafo(pdf, f"- {logro}", 4.6)
     pdf.ln(2)
 
-  # Formación Académica Real Fija (Nunca más inventada ni omitida)
   pdf.set_font("Helvetica", "B", 10.5)
   pdf.cell(
       0,
@@ -501,4 +487,4 @@ for idx, of in enumerate(seleccionadas):
           "assignees": [USUARIO],
       },
   )
-  print(f"✅ Issue y PDF Senior creados para: {of.get('empresa_o_rol')}")f
+  print(f"✅ Issue y PDF Senior creados para: {of.get('empresa_o_rol')}")
