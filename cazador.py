@@ -18,12 +18,12 @@ USUARIO = os.environ.get("GITHUB_ACTOR")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# 1. TU CV REAL COMPLETO INCRUSTADO
+# 1. TU CV REAL COMPLETO INCRUSTADO (Enfocado en roles jurídicos corporativos/normativos sin colegiación)
 CV_REAL_BARBARA = """
 NOMBRE: Bárbara Isabel Piccolo Obaldo
 CIUDADANÍA: Ciudadana de la Unión Europea (UE) - Permiso de trabajo inmediato en España y la UE sin necesidad de visado.
 CONTACTO: Email: barbaraipiccolo@gmail.com | Tel: +58-414-9065797 | LinkedIn: linkedin.com/in/barbara-piccolo-613705b6 | Portafolio: github.com/barbarapiccolo/cvlegal
-PERFIL: Abogada especialista en Cumplimiento Normativo (Compliance), Derecho Financiero, LegalTech y Ciberseguridad (+12 años de experiencia). Experta en regulación FinTech (MiCA, AML/PBC), Ley de IA de la UE (EU AI Act), resiliencia operativa digital (DORA), seguridad de la información (ISO 27001), RGPD y contratación tecnológica (SaaS, SLAs, DPAs).
+PERFIL: Especialista en Cumplimiento Normativo (Compliance), Operaciones Legales (LegalOps), GRC, LegalTech y Regulación Financiera/Digital (+12 años de experiencia). Licenciada en Derecho (Venezuela) con Máster en LegalTech y Derecho de la Ciberseguridad en España (Esneca, 2025). Experta en regulación FinTech (MiCA, AML/PBC), Ley de IA de la UE (EU AI Act), resiliencia operativa digital (DORA), seguridad de la información (ISO 27001), RGPD y gestión de contratos tecnológicos (SaaS, SLAs, DPAs).
 
 EXPERIENCIA PROFESIONAL REAL:
 1. BIGTO.ONE | Remoto (España / Global) | Especialista Jurídico-Tecnológico (Consultora) | Julio 2025 - Diciembre 2025
@@ -32,28 +32,28 @@ EXPERIENCIA PROFESIONAL REAL:
 - Diseño y estandarización de procesos y contratos tecnológicos (SaaS, SLAs, DPAs) aplicando Legal by Design y privacidad desde el diseño (RGPD).
 
 2. CONSULTORA INDEPENDIENTE | Italia - Venezuela (Remoto) | Asesora Legal y de Estrategia Digital | 2023 - Presente
-- Asesoría legal en derecho mercantil, cumplimiento normativo, protección de datos y redacción de contratos tecnológicos.
+- Consultoría en cumplimiento normativo, protección de datos, derecho mercantil y estructuración de contratos tecnológicos.
 - Optimización y automatización de procesos de contratación digital (CLM) y flujos de trabajo LegalTech.
 
 3. MYSTIC REMODELING LLC | Florida, EE.UU. | Gerente de Operaciones Digitales | Sept 2021 - Sept 2023
 - Gestión de operaciones digitales, implementación de herramientas tecnológicas de gestión de proyectos y automatización de procesos internos.
-- Supervisión de cumplimiento de normativas de privacidad y seguridad de datos en el mercado estadounidense.
+- Supervisión de cumplimiento de normativas de privacidad y seguridad de datos.
 
 4. INVERSIONES QUADRUVIO | Caracas, Venezuela | Consultor Jurídico Senior | Ene 2015 - Nov 2019
 - Dirección integral del área legal y de cumplimiento corporativo (Compliance) para holding empresarial.
-- Redacción y negociación de contratos mercantiles, gobernanza corporativa (Asambleas de Accionistas y Juntas Directivas) y mitigación de riesgos regulatorios.
+- Negociación de contratos mercantiles, gobernanza corporativa (Asambleas de Accionistas y Juntas Directivas) y mitigación de riesgos regulatorios.
 
-5. CASA DE CAMBIO ZOOM | Caracas, Venezuela | Abogado Corporativo y de Cumplimiento | Mar 2012 - Jul 2015
+5. CASA DE CAMBIO ZOOM | Caracas, Venezuela | Especialista en Cumplimiento Normativo y Corporativo | Mar 2012 - Jul 2015
 - Responsable del cumplimiento legal y normativo financiero y cambiario, reportando a Presidencia y Consultoría Jurídica.
-- Liderazgo en inspecciones de entes reguladores bancarios/financieros (SUDEBAN) y prevención de legitimación de capitales (AML / LOCDOFT).
+- Liderazgo en inspecciones de entes reguladores bancarios/financieros (SUDEBAN) y prevención de blanqueo de capitales (AML / PBC / LOCDOFT).
 
-6. BANESCO BANCO UNIVERSAL & BANCRECER | Caracas, Venezuela | Abogado Especialista en Créditos / Abogado | Ene 2007 - Jul 2010
+6. BANESCO BANCO UNIVERSAL & BANCRECER | Caracas, Venezuela | Especialista Legal en Créditos y Contratos Bancarios | Ene 2007 - Jul 2010
 - Miembro fundador del equipo legal en el lanzamiento de Bancrecer y especialista en estructuración de contratos bancarios, créditos corporativos, garantías y cumplimiento normativo bancario.
 
 FORMACIÓN ACADÉMICA Y CERTIFICACIONES:
-- Máster en LegalTech y Derecho de la Ciberseguridad | Esneca Business School (2025) - Título con Apostilla de La Haya.
-- Licenciada en Derecho (Abogada) | Universidad Santa María (2005).
-- Certificaciones y Herramientas: ISO 27001, DORA, EU AI Act, MiCA, RGPD, Prevención de Blanqueo de Capitales (AML), VLEX, DocuSign, LegalSurf, Salesforce, Notion, GitHub.
+- Máster en LegalTech y Derecho de la Ciberseguridad | Esneca Business School, España (2025) - Título con Apostilla de La Haya.
+- Licenciada en Derecho (Abogada) | Universidad Santa María, Venezuela (2005).
+- Habilidades y Herramientas: ISO 27001, DORA, EU AI Act, MiCA, RGPD, Prevención de Blanqueo de Capitales (AML/PBC), Gestión de Contratos (CLM), VLEX, DocuSign, LegalSurf, Salesforce, Notion, GitHub.
 - Idiomas: Español (Nativo), Italiano (Intermedio B1), Inglés (Intermedio B1).
 """
 
@@ -70,35 +70,42 @@ try:
 except Exception:
   pass
 
-# 2. Búsqueda enfocada en puestos Senior/Mid en ESPAÑOL
+# 2. Exclusiones: Bloqueamos Inglés C1, Becarios, Ingeniería Informática/Redes, Colegiación obligatoria y Litigación
 filtro_exclusiones = (
     '-"C1" -"C2" -"fluent English" -"inglés fluido" -"bilingüe" -"becario"'
     ' -"becaria" -"prácticas" -"internship" -"Qualys" -"Pentester" -"CISSP"'
-    ' -"CISM" -"ITIL" -"Ingeniero" -"Ingeniería Informática" -"Telecomunicaciones"'
-    ' -"Administración Pública" -"temporal"'
+    ' -"CISM" -"ITIL" -"Ingeniería Informática" -"Telecomunicaciones"'
+    ' -"colegiado ejerciente" -"colegiación obligatoria" -"procesal"'
+    ' -"litigación" -"juzgados" -"Administración Pública" -"temporal"'
 )
 
 queries = [
+    # 1. Roles de Compliance, Prevención de Blanqueo (PBC/AML), RGPD, DPO y Privacidad (No exigen colegiación)
     (
-        '("Compliance" OR "Cumplimiento Normativo" OR "RGPD" OR "Protección de'
-        ' Datos" OR "DPO" OR "Ciberseguridad" OR "DORA" OR "Prevención de'
-        ' Blanqueo") ("Abogado" OR "Jurista" OR "Legal" OR "Consultor" OR'
-        ' "Especialista") ("Madrid" OR "Barcelona" OR "Teletrabajo" OR "Remoto"'
-        f' OR "España") ("oferta" OR "vacante" OR "empleo") -curso -master -blog {filtro_exclusiones}'
+        '("Técnico de Compliance" OR "Compliance Officer" OR "Especialista en'
+        ' Compliance" OR "Cumplimiento Normativo" OR "Consultor RGPD" OR'
+        ' "Protección de Datos" OR "DPO" OR "Prevención de Blanqueo" OR "PBC")'
+        ' ("Madrid" OR "Barcelona" OR "Teletrabajo" OR "Remoto" OR "España")'
+        f' ("oferta" OR "vacante" OR "empleo") -curso -master -blog {filtro_exclusiones}'
     ),
+    # 2. Roles de Legal Operations (LegalOps), Gestión de Contratos (Contract Manager), LegalTech y GRC Normativo
     (
-        '(site:infojobs.net OR site:es.indeed.com OR site:tecnoempleo.com OR'
-        ' site:getonbrd.com/empleos OR site:welcometothejungle.com OR'
-        ' site:factorialhr.es OR site:teamtailor.com) ("Abogado" OR "Jurista"'
-        ' OR "Legal" OR "RGPD" OR "Compliance" OR "FinTech") ("Inteligencia'
-        ' Artificial" OR "Tecnología" OR "Digital" OR "Ciberseguridad" OR'
-        f' "LegalTech" OR "Mercantil" OR "Bancario") {filtro_exclusiones}'
+        '("Legal Operations" OR "LegalOps" OR "Operaciones Legales" OR "Gestor'
+        ' de Contratos" OR "Contract Manager" OR "LegalTech" OR "Asesor'
+        ' Jurídico" OR "Consultor Legal" OR "Derecho Digital") ("SaaS" OR'
+        ' "Tecnología" OR "Inteligencia Artificial" OR "Contratos" OR "RGPD" OR'
+        ' "FinTech" OR "Mercantil" OR "DORA" OR "ISO 27001") ("Madrid" OR'
+        ' "Barcelona" OR "Remoto" OR "Teletrabajo" OR "España") -curso -master'
+        f" -blog {filtro_exclusiones}"
     ),
+    # 3. Portales de empleo buscando perfiles jurídicos/normativos en empresa privada, banca, FinTech y consultoría
     (
-        '("Operaciones Legales" OR "Legal Operations" OR "LegalOps" OR "Gestor'
-        ' de Contratos" OR "Abogado In-house" OR "Asesor Jurídico") ("Remoto"'
-        ' OR "Teletrabajo" OR "Madrid" OR "Barcelona" OR "España") ("vacante"'
-        f' OR "oferta" OR "empleo") -curso -master -blog {filtro_exclusiones}'
+        '(site:infojobs.net OR site:es.indeed.com OR site:welcometothejungle.com'
+        ' OR site:getonbrd.com/empleos OR site:factorialhr.es OR'
+        ' site:teamtailor.com) ("Compliance" OR "RGPD" OR "Protección de Datos"'
+        ' OR "Legal Operations" OR "LegalTech" OR "Contratos" OR "Jurídico" OR'
+        ' "Jurista") ("FinTech" OR "Banca" OR "Tecnología" OR "Inteligencia'
+        f' Artificial" OR "ISO 27001" OR "DORA" OR "Mercantil") {filtro_exclusiones}'
     ),
 ]
 
@@ -126,8 +133,9 @@ def extraer_texto_completo_oferta(url):
   return ""
 
 
+# Bloqueo automático si el texto exige colegiación en España, ingeniería TIC o inglés C1
 patrones_excluyentes = re.compile(
-    r"(ingl[eé]s\s+(fluido|muy\s+alto|c1|c2|biling[uü]e|indispensable|imprescindible|excluyente)|nivel\s+(c1|c2|biling[uü]e)\s+de\s+ingl[eé]s|fluent\s+in\s+english|english\s+(c1|c2|fluent|native)|becario|becaria|convenio\s+de\s+pr[aá]cticas)",
+    r"(ingl[eé]s\s+(fluido|muy\s+alto|c1|c2|biling[uü]e|indispensable|imprescindible|excluyente)|nivel\s+(c1|c2|biling[uü]e)\s+de\s+ingl[eé]s|fluent\s+in\s+english|english\s+(c1|c2|fluent|native)|becario|becaria|convenio\s+de\s+pr[aá]cticas|colegiaci[oó]n\s+obligatoria|abogado\s+ejerciente|colegiado\s+ejerciente|ingenier[ií]a\s+inform[aá]tica|ingenier[ií]a\s+de\s+telecomunicaciones)",
     re.IGNORECASE,
 )
 
@@ -154,7 +162,9 @@ for q in queries:
         texto_total = f"{titulo} {snippet} {contenido_pagina}"
 
         if patrones_excluyentes.search(texto_total):
-          print(f"❌ Descartada por filtro (Inglés C1 o Becario): {titulo}")
+          print(
+              f"❌ Descartada por filtro (Inglés C1 / Colegiación / Ingeniería TI): {titulo}"
+          )
           continue
 
         ofertas_crudas.append({
@@ -172,19 +182,32 @@ print(
 if not ofertas_crudas:
   exit(0)
 
-# 3. Filtrar con Gemini
+# 3. Filtrar con Gemini explicando exactamente tu situación profesional
 prompt = (
     "Analiza la siguiente lista de vacantes de empleo:\n"
     f"{json.dumps(ofertas_crudas[:14], ensure_ascii=False, indent=2)}\n\n"
     "MI CV REAL COMPLETO (PROHIBIDO INVENTAR O BORRAR EMPRESAS, FECHAS O"
     " UNIVERSIDADES):\n"
     f"{CV_REAL_BARBARA}\n\n"
-    "REGLAS ESTRICTAS DE SELECCIÓN Y REDACCIÓN DE CV ATS:\n"
-    "1. SOLO OFERTAS REALES ACORDES A MI NIVEL (+12 años exp): Descarta"
-    " puestos de Becario/Prácticas, cursos, blogs o puestos de ingeniería"
-    " informática pura.\n"
-    "2. IDIOMA: Descarta si está toda en inglés o exige Inglés"
-    " C1/Fluido/Excluyente. Acepta ofertas en español.\n"
+    "REGLAS ESTRICTAS DE SELECCIÓN (PERFIL JURÍDICO VENEZOLANO CON CIUDADANÍA"
+    " UE Y MÁSTER ESPAÑOL EN LEGALTECH/CIBERSEGURIDAD):\n"
+    "1. QUÉ PUEDO EJERCER EN ESPAÑA: Soy abogada graduada en Venezuela con"
+    " Ciudadanía Europea y Máster en España. NO puedo ejercer como abogada"
+    " litigante/procesalista colegiada en tribunales españoles, PERO SÍ puedo"
+    " ejercer todos los cargos del área jurídica corporativa, normativa y"
+    " tecnológica que no exigen colegiación: Compliance Officer / Técnico de"
+    " Compliance, Prevención de Blanqueo (PBC/AML), Consultora RGPD /"
+    " Protección de Datos / DPO, Legal Operations (LegalOps), Gestora de"
+    " Contratos (Contract Manager SaaS/Mercantil), GRC Normativo (ISO 27001,"
+    " DORA, EU AI Act, MiCA), Asesora Jurídica In-house o Consultora LegalTech.\n"
+    "2. QUÉ DEBES DESCARTAR SIN EXCEPCIÓN:\n"
+    "   - Ofertas que exijan colegiación en España como abogado ejerciente,"
+    " ir a juzgados/tribunales (procesal) o título homologado MECES para"
+    " licitaciones públicas.\n"
+    "   - Ofertas para Ingenieros Informáticos o de Telecomunicaciones"
+    " (programación, redes, servidores, CISSP, ITIL, PMP).\n"
+    "   - Ofertas de Becario/Prácticas, contratos temporales o que exijan"
+    " Inglés C1/Fluido excluyente.\n"
     "3. REGLA DE ORO PARA EL CV ATS: En 'experiencia_adaptada' DEBES INCLUIR"
     " MIS EXPERIENCIAS REALES CON SUS NOMBRES DE EMPRESA Y FECHAS EXACTAS"
     " (BIGTO.ONE hasta dic 2025, Consultora Independiente, Mystic Remodeling,"
@@ -195,36 +218,32 @@ prompt = (
     "    {\n"
     '      "empresa_o_rol": "Nombre del Puesto - Empresa",\n'
     '      "modalidad": "Remoto / Híbrido en España / Presencial en España",\n'
-    '      "confirmacion_idioma": "Ej: Español (sin requisito de inglés C1)",\n'
+    '      "confirmacion_idioma": "Ej: Español (Rol jurídico/compliance sin'
+    ' requisito de colegiación ni inglés C1)",\n'
     '      "link": "URL original de la vacante",\n'
     '      "asunto_correo": "Candidatura: [Nombre del Puesto] - Bárbara'
     ' Piccolo (Ciudadanía UE)",\n'
-    '      "mensaje_postulacion": "Estimado equipo de atracción de talento de'
-    " ING, presento mi candidatura para el puesto de Cyber Risk / AI Risk"
-    " Expert en Madrid. Cuento con Ciudadanía Europea y un perfil jurídico"
-    " altamente especializado en regulación tecnológica, gobernanza de IA,"
-    " ciberseguridad y gestión de riesgos regulatorios. Puede consultar mi"
-    " portafolio completo en https://github.com/barbarapiccolo/cvlegal."
-    ' Atentamente, Bárbara Piccolo.",\n'
+    '      "mensaje_postulacion": "Carta ejecutiva en español adaptada a la'
+    " empresa y al puesto, destacando mis +12 años de experiencia en"
+    " Compliance, Gestión Contractual, Regulación Financiera/Tecnológica y"
+    " LegalOps, mi Máster español en LegalTech y Ciberseguridad (2025), mi"
+    " portafolio https://github.com/barbarapiccolo/cvlegal y mi Ciudadanía"
+    ' Europea para contratación inmediata",\n'
     '      "cv_ats": {\n'
-    '        "titulo_adaptado": "Abogada Especialista en Ciberseguridad y'
-    ' Gobernanza de IA | Ciudadana de la UE",\n'
-    '        "resumen_ejecutivo": "Abogada especialista en regulación'
-    " tecnológica, gobernanza de Inteligencia Artificial y gestión de"
-    " riesgos cibernéticos. Con Ciudadanía Europea, aporto una sólida visión"
-    " estratégica para alinear la innovación tecnológica con las"
-    ' expectativas regulatorias.",\n'
-    '        "competencias_ats": ["AI Risk Governance", "Cyber Risk Management",'
-    ' "Regulatory Compliance", "EU AI Act", "Security Governance", "Legal Risk'
-    ' Assessment", "DORA", "ISO 27001"],\n'
+    '        "titulo_adaptado": "Titular profesional adaptado al puesto'
+    ' (Ej: Especialista en Compliance, LegalOps y Regulación Digital |'
+    ' Ciudadana UE)",\n'
+    '        "resumen_ejecutivo": "Párrafo ejecutivo de 4 líneas adaptado a la'
+    ' vacante con mis +12 años de experiencia, Máster en LegalTech y'
+    ' Ciudadanía Europea",\n'
+    '        "competencias_ats": ["Keyword 1", "Keyword 2", "Keyword 3",'
+    ' "Keyword 4", "Keyword 5", "Keyword 6", "Keyword 7", "Keyword 8"],\n'
     '        "experiencia_adaptada": [\n'
     "          {\n"
     '            "cargo_y_empresa": "BIGTO.ONE | Remoto - Especialista'
     ' Jurídico-Tecnológico (Julio 2025 - Diciembre 2025)",\n'
-    '            "logros": ["Asesoramiento estratégico en la adopción segura'
-    ' de tecnologías emergentes e Inteligencia Artificial bajo marcos'
-    ' regulatorios europeos.", "Gestión de registros de riesgos tecnológicos y'
-    ' enlace con equipos de Compliance."]\n'
+    '            "logros": ["Logro 1 adaptado a las keywords de la vacante",'
+    ' "Logro 2 adaptado a las keywords de la vacante"]\n'
     "          }\n"
     "        ]\n"
     "      }\n"
@@ -459,14 +478,14 @@ for idx, of in enumerate(seleccionadas):
   link_mailto = f"mailto:?subject={asunto_encoded}&body={cuerpo_encoded}"
 
   cuerpo_issue = (
-      f"🔔 Hola @{USUARIO}, encontré una vacante Senior en español ideal para"
-      " tu perfil con Ciudadanía UE:\n\n### 🎯 Vacante Detectada\n**Puesto y"
-      f" Empresa:** {of.get('empresa_o_rol')}\n🌍 **Modalidad:**"
-      f" {of.get('modalidad')}\n✅ **Idioma:**"
-      f" {of.get('confirmacion_idioma', 'Español')}\n🔗 **[1. Ir al Portal de"
-      f" la Oferta para Postular]({of.get('link')})**\n\n---\n\n### 📄 Tu CV"
-      " Senior Completo en PDF Adaptado (Anti-ATS + Ciudadanía UE)\n👉 **[2. 📥"
-      " TOCA AQUÍ PARA DESCARGAR TU CV EN PDF"
+      f"🔔 Hola @{USUARIO}, encontré una vacante del área jurídica/normativa"
+      " (sin requisito de colegiación) ideal para tu perfil con Ciudadanía UE:\n\n"
+      f"### 🎯 Vacante Detectada\n**Puesto y Empresa:** {of.get('empresa_o_rol')}\n"
+      f"🌍 **Modalidad:** {of.get('modalidad')}\n"
+      f"✅ **Verificación:** {of.get('confirmacion_idioma', 'Español - Sin colegiación')}\n"
+      f"🔗 **[1. Ir al Portal de la Oferta para Postular]({of.get('link')})**\n\n---\n\n"
+      "### 📄 Tu CV Senior Completo en PDF Adaptado (Anti-ATS + Ciudadanía UE)\n"
+      "👉 **[2. 📥 TOCA AQUÍ PARA DESCARGAR TU CV EN PDF"
       f" ADAPTADO]({url_descarga_pdf})**\n\n---\n\n### ✉️ Mensaje / Carta de"
       " Presentación para Pegar en el Portal\n> **Asunto sugerido:**"
       f" {of.get('asunto_correo')}\n\n```text\n"
