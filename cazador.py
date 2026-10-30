@@ -26,7 +26,7 @@ CONTACTO: Email: barbaraipiccolo@gmail.com | Tel: +58-414-9065797 | LinkedIn: li
 PERFIL: Abogada especialista en Cumplimiento Normativo (Compliance), Derecho Financiero, LegalTech y Ciberseguridad (+12 años de experiencia). Experta en regulación FinTech (MiCA, AML/PBC), Ley de IA de la UE (EU AI Act), resiliencia operativa digital (DORA), seguridad de la información (ISO 27001), RGPD y contratación tecnológica (SaaS, SLAs, DPAs).
 
 EXPERIENCIA PROFESIONAL REAL (MANTENER SIEMPRE EMPRESAS Y FECHAS):
-1. BIGTO.ONE | Remoto (España / Global) | Especialista Jurídico-Tecnológico (Consultora) | Julio 2025 - Presente
+1. BIGTO.ONE | Remoto (España / Global) | Especialista Jurídico-Tecnológico (Consultora) | Julio 2025 - Diciembre 2025
 - Consultora estratégico-tecnológica para venture builder global implementando el marco de cumplimiento y operaciones legales (LegalOps) para un portafolio de +8 startups tecnológicas en el mercado europeo.
 - Diagnósticos de cumplimiento en sectores de alta regulación: FinTech (MiCA, AML) e Inteligencia Artificial (EU AI Act), DORA e ISO 27001.
 - Diseño y estandarización de procesos y contratos tecnológicos (SaaS, SLAs, DPAs) aplicando Legal by Design y privacidad desde el diseño (RGPD).
@@ -501,4 +501,4 @@ for idx, of in enumerate(seleccionadas):
           "assignees": [USUARIO],
       },
   )
-  print(f"✅ Issue y PDF Senior creados para: {of.get('empresa_o_rol')}")
+  print(f"✅ Issue y PDF Senior creados para: {of.get('empresa_o_rol')}")f
